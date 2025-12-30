@@ -1,346 +1,682 @@
+
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
+import { useMemo, useState } from 'react';
 import { useLanguage } from '@/lib/i18n/context';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Calendar, Shield, Zap, TrendingUp, Globe, Target, BarChart3, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowRight, BarChart3, CheckCircle2, Clock, FileText, KeyRound, Sparkles, Target, Timer } from 'lucide-react';
 
-export default function LandingPage() {
-  const { language, setLanguage, messages: t } = useLanguage();
+function isValidEmail(email: string) {
+  const v = email.trim();
+  if (!v) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
 
-  const features = [
-    { icon: Calendar, title: t.landing.feature1Title, desc: t.landing.feature1Desc },
-    { icon: Shield, title: t.landing.feature2Title, desc: t.landing.feature2Desc },
-    { icon: Zap, title: t.landing.feature3Title, desc: t.landing.feature3Desc },
-    { icon: TrendingUp, title: t.landing.feature4Title, desc: t.landing.feature4Desc },
-    { icon: Globe, title: t.landing.feature5Title, desc: t.landing.feature5Desc },
-    { icon: Target, title: t.landing.feature6Title, desc: t.landing.feature6Desc },
-  ];
+function SectionTitle({ title, subtitle }: { title: React.ReactNode; subtitle?: React.ReactNode }) {
+  return (
+    <div className="max-w-2xl">
+      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
+      {subtitle ? <p className="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">{subtitle}</p> : null}
+    </div>
+  );
+}
 
-  const pricing = [
-    {
-      name: t.landing.planFree,
-      price: t.landing.free,
-      features: [
-        t.landing.basicFeatures,
-        `${t.landing.limited} 100 ${t.landing.tasks}`,
-        t.landing.smartPlanner,
-        t.landing.burnoutGuard,
-      ],
-      cta: t.landing.signup,
-      href: '/signup',
-    },
-    {
-      name: t.landing.planPro,
-      price: '$9',
-      period: t.landing.perMonth,
-      features: [
-        t.landing.basicFeatures,
-        `${t.landing.unlimited} ${t.landing.tasks}`,
-        t.landing.smartPlanner,
-        t.landing.burnoutGuard,
-        t.landing.advancedAnalytics,
-        t.landing.prioritySupport,
-      ],
-      cta: t.landing.signup,
-      href: '/signup',
-      popular: true,
-    },
-    {
-      name: t.landing.planTeam,
-      price: t.landing.comingSoon,
-      features: [
-        t.landing.basicFeatures,
-        `${t.landing.unlimited} ${t.landing.tasks}`,
-        t.landing.smartPlanner,
-        t.landing.burnoutGuard,
-        t.landing.advancedAnalytics,
-        t.landing.teamCollaboration,
-      ],
-      cta: t.landing.comingSoon,
-      href: '#',
-      disabled: true,
-    },
-  ];
+function BrowserFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/70 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex items-center gap-2">
+          <div className="h-2.5 w-2.5 rounded-full bg-slate-300/80 dark:bg-slate-700" />
+          <div className="h-2.5 w-2.5 rounded-full bg-slate-300/80 dark:bg-slate-700" />
+          <div className="h-2.5 w-2.5 rounded-full bg-slate-300/80 dark:bg-slate-700" />
+        </div>
+        <div className="text-xs text-slate-500 dark:text-slate-400">taskello.app</div>
+        <div className="w-10" />
+      </div>
+      <div className="p-4 sm:p-6">{children}</div>
+    </div>
+  );
+}
 
-  const faqs = [
-    { q: t.landing.faq1Q, a: t.landing.faq1A },
-    { q: t.landing.faq2Q, a: t.landing.faq2A },
-    { q: t.landing.faq3Q, a: t.landing.faq3A },
-    { q: t.landing.faq4Q, a: t.landing.faq4A },
-    { q: t.landing.faq5Q, a: t.landing.faq5A },
-    { q: t.landing.faq6Q, a: t.landing.faq6A },
+function HeroPreviewCollage() {
+  const items = [
+    { src: '/preview/1.png', alt: 'Taskello preview 1' },
+    { src: '/preview/2.png', alt: 'Taskello preview 2' },
+    { src: '/preview/3.png', alt: 'Taskello preview 3' },
+    { src: '/preview/4.png', alt: 'Taskello preview 4' },
   ];
 
   return (
-    <div className={`min-h-screen bg-white dark:bg-slate-900 ${language === 'ar' ? 'rtl' : 'ltr'}`}>
-      <nav className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Target className="h-8 w-8 text-blue-600" />
-              <span className={`${language === 'ar' ? 'mr-2' : 'ml-2'} text-xl font-bold text-slate-900 dark:text-white`}>
-                {t.landing.brand}
-              </span>
+    <div className="w-full">
+      <div className="grid grid-cols-2 gap-3 sm:hidden">
+        {items.map((it) => (
+          <div
+            key={it.src}
+            className="relative aspect-[4/3] overflow-hidden rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50"
+          >
+            <Image src={it.src} alt={it.alt} fill className="object-contain" priority />
+          </div>
+        ))}
+      </div>
+
+      <div className="relative hidden sm:block">
+        <div className="relative h-[360px] md:h-[420px]">
+          <div className="absolute left-0 top-10 w-[72%]">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 shadow-lg">
+              <Image src={items[0].src} alt={items[0].alt} fill className="object-contain" priority />
             </div>
-            <div className={`hidden md:flex items-center ${language === 'ar' ? 'space-x-reverse' : ''} space-x-8`}>
-              <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
-                {t.landing.features}
+          </div>
+
+          <div className="absolute right-0 top-0 w-[56%] rotate-2">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 shadow-md">
+              <Image src={items[1].src} alt={items[1].alt} fill className="object-contain" priority />
+            </div>
+          </div>
+
+          <div className="absolute right-2 bottom-0 w-[60%] -rotate-2">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 shadow-md">
+              <Image src={items[2].src} alt={items[2].alt} fill className="object-contain" priority />
+            </div>
+          </div>
+
+          <div className="absolute left-6 bottom-2 w-[46%] rotate-1">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 shadow-md">
+              <Image src={items[3].src} alt={items[3].alt} fill className="object-contain" priority />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LandingPage() {
+  const { language, setLanguage, messages: t } = useLanguage();
+  const [buyOpen, setBuyOpen] = useState(false);
+  const [buyEmail, setBuyEmail] = useState('');
+  const [buyLoading, setBuyLoading] = useState(false);
+  const [buyError, setBuyError] = useState<string | null>(null);
+  const [previewOk, setPreviewOk] = useState(true);
+
+  const emailOk = useMemo(() => isValidEmail(buyEmail), [buyEmail]);
+
+  async function startCheckout() {
+    const email = buyEmail.trim();
+    if (!isValidEmail(email)) {
+      // TODO(i18n): landing.checkoutInvalidEmail
+      setBuyError((t as any)?.landing?.checkoutInvalidEmail || null);
+      return;
+    }
+
+    setBuyLoading(true);
+    setBuyError(null);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, locale: language }),
+      });
+      const json = await res.json();
+
+      if (!res.ok || !json?.url) {
+        throw new Error(json?.error || 'Checkout failed');
+      }
+
+      window.location.href = json.url;
+    } catch {
+      setBuyError(t.landing.checkoutFailed);
+    } finally {
+      setBuyLoading(false);
+    }
+  }
+
+  return (
+    <div
+      className={`min-h-screen ${language === 'ar' ? 'rtl' : 'ltr'} bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(37,99,235,0.10),transparent_55%),radial-gradient(900px_circle_at_70%_0%,rgba(37,99,235,0.06),transparent_60%)] bg-slate-50 dark:bg-slate-950`}
+    >
+      <nav className="sticky top-0 z-50 border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-950/70 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="h-16 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-lg border border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shadow-sm">
+                <Target className="h-4.5 w-4.5 text-slate-900 dark:text-white" />
+              </div>
+              <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">{t.landing.brand}</span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-7 text-sm text-slate-600 dark:text-slate-300">
+              <a href="#why" className="hover:text-slate-900 dark:hover:text-white transition">
+                {t.landing.navWhy}
               </a>
-              <a href="#pricing" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
-                {t.landing.pricing}
+              <a href="#how" className="hover:text-slate-900 dark:hover:text-white transition">
+                {/* TODO(i18n): landing.navHow */}
+                {(t as any)?.landing?.navHow}
               </a>
-              <a href="#faqs" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
-                {t.landing.faqs}
+              <a href="#preview" className="hover:text-slate-900 dark:hover:text-white transition">
+                {/* TODO(i18n): landing.navPreview */}
+                {(t as any)?.landing?.navPreview}
+              </a>
+              <a href="#pricing" className="hover:text-slate-900 dark:hover:text-white transition">
+                {t.landing.navPricing}
+              </a>
+              <a href="#faqs" className="hover:text-slate-900 dark:hover:text-white transition">
+                {t.landing.navFaqs}
               </a>
             </div>
-            <div className={`flex items-center ${language === 'ar' ? 'space-x-reverse' : ''} space-x-4`}>
-              <button
-                onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-                className="px-3 py-1 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
-              >
-                {language === 'en' ? 'ع' : 'EN'}
-              </button>
-              <Link href="/login">
-                <Button variant="ghost">{t.landing.ctaSecondary}</Button>
+
+            <div className="flex items-center gap-2">
+              <Link href="/login" className="hidden sm:block">
+                <Button variant="ghost">{t.landing.login}</Button>
               </Link>
-              <Link href="/signup">
-                <Button>{t.landing.signup}</Button>
-              </Link>
+              <Button className="gap-2" onClick={() => setBuyOpen(true)}>
+                {t.landing.buyLifetimeAccess}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6">
-            {t.landing.heroHeadline}
-          </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto">
-            {t.landing.heroSubtitle}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <Link href="/signup">
-              <Button size="lg" className="px-8 py-6 text-lg">
-                {t.landing.ctaPrimary}
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg">
-                {t.landing.ctaSecondary}
-              </Button>
-            </Link>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            {t.landing.socialProof}
-          </p>
-        </div>
-      </section>
-
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-center text-slate-900 dark:text-white mb-12">
-            {t.landing.featuresTitle}
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="p-6 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-lg transition transform hover:-translate-y-1"
-              >
-                <feature.icon className="h-12 w-12 text-blue-600 mb-4" />
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-600 dark:text-slate-300">
-                  {feature.desc}
-                </p>
+      <header className="px-4 sm:px-6 pt-14 pb-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-12 gap-10 items-start">
+            <div className="lg:col-span-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 px-3 py-1 text-xs text-slate-600 dark:text-slate-300">
+                <Sparkles className="h-3.5 w-3.5" />
+                {t.landing.microTrust}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-800">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-center text-slate-900 dark:text-white mb-6">
-            {t.landing.uspTitle}
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8 mt-12">
-            <div className="p-8 bg-white dark:bg-slate-900 rounded-lg shadow-md">
-              <Calendar className="h-16 w-16 text-blue-600 mb-4" />
-              <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">
-                {t.landing.feature1Title}
-              </h3>
-              <p className="text-slate-600 dark:text-slate-300 text-lg">
-                {t.landing.uspPlanner}
+              <h1 className="mt-5 text-4xl md:text-5xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                Stop guessing where your time went.
+                <br />
+                Plan it. Track it. Prove it.
+              </h1>
+
+              <p className="mt-4 text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
+                Taskello helps you plan tasks with real time estimates, track what actually happens, and reflect on
+                completion — without distractions or fake productivity.
               </p>
-            </div>
-            <div className="p-8 bg-white dark:bg-slate-900 rounded-lg shadow-md">
-              <Shield className="h-16 w-16 text-green-600 mb-4" />
-              <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">
-                {t.landing.feature2Title}
-              </h3>
-              <p className="text-slate-600 dark:text-slate-300 text-lg">
-                {t.landing.uspBurnout}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
-            {t.landing.analyticsTitle}
-          </h2>
-          <p className="text-xl text-slate-600 dark:text-slate-300 mb-12">
-            {t.landing.analyticsDesc}
-          </p>
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <BarChart3 className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-              <p className="text-slate-900 dark:text-white font-semibold">Completion Rates</p>
-            </div>
-            <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <TrendingUp className="h-12 w-12 text-green-600 mx-auto mb-4" />
-              <p className="text-slate-900 dark:text-white font-semibold">Time Analytics</p>
-            </div>
-            <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <AlertTriangle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
-              <p className="text-slate-900 dark:text-white font-semibold">Task Health</p>
-            </div>
-            <div className="p-6 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <Zap className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-              <p className="text-slate-900 dark:text-white font-semibold">Friction Scores</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-800">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-center text-slate-900 dark:text-white mb-12">
-            {t.landing.pricingTitle}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {pricing.map((plan, index) => (
-              <div
-                key={index}
-                className={`p-8 rounded-lg border-2 ${
-                  plan.popular
-                    ? 'border-blue-600 bg-white dark:bg-slate-900 shadow-xl'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="text-center mb-4">
-                    <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      Popular
-                    </span>
-                  </div>
-                )}
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                  {plan.name}
-                </h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-slate-900 dark:text-white">
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-slate-600 dark:text-slate-400">{plan.period}</span>
-                  )}
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-600 dark:text-slate-300">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href={plan.href}>
-                  <Button
-                    className="w-full"
-                    variant={plan.popular ? 'default' : 'outline'}
-                    disabled={plan.disabled}
-                  >
-                    {plan.cta}
+              <div className="mt-7 flex flex-col sm:flex-row gap-3">
+                <Button size="lg" className="gap-2" onClick={() => setBuyOpen(true)}>
+                  {t.landing.buyLifetimeAccess}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Link href="/login">
+                  <Button size="lg" variant="outline">
+                    {t.landing.login}
                   </Button>
                 </Link>
               </div>
-            ))}
+
+              <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">One-time $25. No subscription.</div>
+
+              <div className="mt-6 text-sm text-slate-600 dark:text-slate-300">
+                {/* TODO(i18n): landing.socialProof */}
+                {(t as any)?.landing?.socialProof}
+              </div>
+            </div>
+
+            <div className="lg:col-span-6">
+              <BrowserFrame>
+                <HeroPreviewCollage />
+              </BrowserFrame>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section id="why" className="px-4 sm:px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <SectionTitle title="Why time breaks trust — even when work is good" subtitle={t.landing.whyBody} />
+          <div className="mt-8 grid md:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem1Title}</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.problem1Desc}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem2Title}</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.problem2Desc}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem3Title}</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.problem3Desc}</div>
+            </div>
+          </div>
+          <div className="mt-5 rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/50 dark:bg-slate-950/40 p-5 text-sm text-slate-700 dark:text-slate-300">
+            {t.landing.solutionLine}
           </div>
         </div>
       </section>
 
-      <section id="faqs" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold text-center text-slate-900 dark:text-white mb-12">
-            {t.landing.faqTitle}
-          </h2>
-          <div className="space-y-6">
-            {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
-              >
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                  {faq.q}
-                </h3>
-                <p className="text-slate-600 dark:text-slate-300">{faq.a}</p>
+      <section id="how" className="px-4 sm:px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <SectionTitle
+            title={
+              // TODO(i18n): landing.howTitle
+              (t as any)?.landing?.howTitle
+            }
+            subtitle={
+              // TODO(i18n): landing.howSubtitle
+              (t as any)?.landing?.howSubtitle
+            }
+          />
+
+          <div className="mt-8 grid md:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center">
+                  <Timer className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  {/* TODO(i18n): landing.howStep1Title */}
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep1Title}</div>
+                  {/* TODO(i18n): landing.howStep1Desc */}
+                  <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.howStep1Desc}</div>
+                </div>
               </div>
-            ))}
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  {/* TODO(i18n): landing.howStep2Title */}
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep2Title}</div>
+                  {/* TODO(i18n): landing.howStep2Desc */}
+                  <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.howStep2Desc}</div>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  {/* TODO(i18n): landing.howStep3Title */}
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep3Title}</div>
+                  {/* TODO(i18n): landing.howStep3Desc */}
+                  <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.howStep3Desc}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-slate-900 dark:bg-slate-950 text-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <div className="flex items-center mb-4">
-                <Target className="h-8 w-8 text-blue-500" />
-                <span className={`${language === 'ar' ? 'mr-2' : 'ml-2'} text-xl font-bold`}>{t.landing.brand}</span>
+      <section id="features" className="px-4 sm:px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <SectionTitle
+            title={
+              // TODO(i18n): landing.spotlightTitle
+              (t as any)?.landing?.spotlightTitle
+            }
+            subtitle={
+              // TODO(i18n): landing.spotlightSubtitle
+              (t as any)?.landing?.spotlightSubtitle
+            }
+          />
+
+          <div className="mt-8 grid gap-3">
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shrink-0">
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
-              <p className="text-slate-400">{t.landing.tagline}</p>
+              <div>
+                {/* TODO(i18n): landing.featureTimeAwareHomeTitle */}
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureTimeAwareHomeTitle}</div>
+                {/* TODO(i18n): landing.featureTimeAwareHomeDesc */}
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureTimeAwareHomeDesc}</div>
+              </div>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">{t.landing.features}</h4>
-              <ul className="space-y-2 text-slate-400">
-                <li>{t.landing.feature1Title}</li>
-                <li>{t.landing.feature2Title}</li>
-                <li>{t.landing.feature3Title}</li>
-              </ul>
+
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                {/* TODO(i18n): landing.featureReflectionTitle */}
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureReflectionTitle}</div>
+                {/* TODO(i18n): landing.featureReflectionDesc */}
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureReflectionDesc}</div>
+              </div>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">{t.landing.contact}</h4>
-              <ul className="space-y-2 text-slate-400">
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    {t.landing.footerPrivacy}
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    {t.landing.footerTerms}
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    {t.landing.footerContact}
-                  </a>
-                </li>
-              </ul>
+
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shrink-0">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                {/* TODO(i18n): landing.featureInsightsTitle */}
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureInsightsTitle}</div>
+                {/* TODO(i18n): landing.featureInsightsDesc */}
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureInsightsDesc}</div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shrink-0">
+                <FileText className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                {/* TODO(i18n): landing.featureProofPageTitle */}
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureProofPageTitle}</div>
+                {/* TODO(i18n): landing.featureProofPageDesc */}
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureProofPageDesc}</div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shrink-0">
+                <KeyRound className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                {/* TODO(i18n): landing.featureWorkspaceVariablesTitle */}
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureWorkspaceVariablesTitle}</div>
+                {/* TODO(i18n): landing.featureWorkspaceVariablesDesc */}
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureWorkspaceVariablesDesc}</div>
+              </div>
             </div>
           </div>
-          <div className="border-t border-slate-800 pt-8 text-center text-slate-400">
-            {t.landing.footerCopyright}
+        </div>
+      </section>
+
+      <section id="preview" className="px-4 sm:px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-12 gap-10 items-start">
+            <div className="lg:col-span-5">
+              <SectionTitle title={t.landing.previewTitle} subtitle={t.landing.previewDesc} />
+              <div className="mt-6 text-sm text-slate-500 dark:text-slate-400">{t.landing.previewNote}</div>
+            </div>
+
+            <div className="lg:col-span-7">
+              <BrowserFrame>
+                {previewOk ? (
+                  <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-white/60 dark:bg-slate-950/50">
+                    <Image
+                      src="/preview/dashboard.png"
+                      alt="Dashboard preview"
+                      fill
+                      className="object-contain"
+                      onError={() => setPreviewOk(false)}
+                      priority
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-[16/10] w-full rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-100/70 dark:bg-slate-900/30">
+                    <div className="h-full w-full animate-pulse" />
+                  </div>
+                )}
+              </BrowserFrame>
+            </div>
           </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="px-4 sm:px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <SectionTitle title={t.landing.pricingTitle} subtitle={t.landing.pricingSubtitle} />
+
+          <div className="mt-8 grid lg:grid-cols-12 gap-6 items-start">
+            <div className="lg:col-span-7">
+              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 shadow-sm p-6">
+                <div className="flex items-start justify-between gap-6 flex-wrap">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.lifetimePlanTitle}</div>
+                    <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.lifetimePlanDesc}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-semibold text-slate-900 dark:text-white">{t.landing.lifetimePrice}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{t.landing.lifetimePriceHint}</div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-2 text-sm text-slate-700 dark:text-slate-200">
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-blue-600">•</span>
+                    <span>{t.landing.lifetimeInclude1}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-blue-600">•</span>
+                    <span>{t.landing.lifetimeInclude2}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-blue-600">•</span>
+                    <span>{t.landing.lifetimeInclude3}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-blue-600">•</span>
+                    <span>{t.landing.lifetimeInclude4}</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                  <Button className="gap-2 flex-1" size="lg" onClick={() => setBuyOpen(true)}>
+                    {t.landing.buyLifetimeAccess}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Link href="/login" className="flex-1">
+                    <Button className="w-full" size="lg" variant="outline">
+                      {t.landing.login}
+                    </Button>
+                  </Link>
+                </div>
+
+                <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">{t.landing.lifetimeFinePrint}</div>
+
+                <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                  {/* TODO(i18n): landing.refundNote */}
+                  {(t as any)?.landing?.refundNote}
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5">
+              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/50 dark:bg-slate-950/40 p-6">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.forWhoTitle}</div>
+                <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-blue-600">•</span>
+                    <span>{t.landing.forWho1}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-blue-600">•</span>
+                    <span>{t.landing.forWho2}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-blue-600">•</span>
+                    <span>{t.landing.forWho3}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faqs" className="px-4 sm:px-6 py-12">
+        <div className="max-w-5xl mx-auto">
+          <SectionTitle title={t.landing.faqTitle} subtitle={t.landing.faqSubtitle} />
+
+          <div className="mt-8 space-y-3">
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">What does “lifetime purchase” mean?</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                You pay once and keep access forever.
+                <br />
+                No subscriptions, no renewals, no hidden limits.
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">Can I share progress with clients?</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Yes. You can generate a clean, read-only client page for a specific project or tag — showing real
+                progress, time spent, and completion status.
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">How does the timer work?</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                The timer is tied to task state.
+                <br />
+                It can automatically start on Doing, pause on Hold, and stop on Done — so time stays honest without
+                micromanagement.
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">Is this monitoring or surveillance?</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                No. Taskello does not track screens, activity, or behavior.
+                <br />
+                It focuses only on your tasks, your time, and proof you choose to share.
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                Why Taskello instead of Jira, Asana, or other task tools?
+              </div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Jira and similar tools are built for teams, processes, and coordination.
+                <br />
+                Taskello is built for individuals who sell time, outcomes, or deliverables.
+                <div className="mt-3" />
+                It focuses on:
+                <div className="mt-2 space-y-1">
+                  <div>Time awareness instead of workflow complexity</div>
+                  <div>Real completion instead of endless task movement</div>
+                  <div>Proof of work instead of internal coordination</div>
+                </div>
+                <div className="mt-3" />
+                If you work solo and need clarity — not overhead — Taskello fits better.
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <Button className="gap-2" size="lg" onClick={() => setBuyOpen(true)}>
+              {t.landing.buyLifetimeAccess}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <footer className="px-4 sm:px-6 py-10 border-t border-slate-200/70 dark:border-slate-800/70">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-start justify-between gap-8 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg border border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shadow-sm">
+                  <Target className="h-4 w-4 text-slate-900 dark:text-white" />
+                </div>
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.brand}</div>
+              </div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-sm">{t.landing.footerTagline}</div>
+            </div>
+
+            <div className="flex items-center gap-6 text-sm">
+              <Link href="/privacy" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+                {t.landing.footerPrivacy}
+              </Link>
+              <Link href="/terms" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+                {t.landing.footerTerms}
+              </Link>
+              <Link href="/contact" className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+                {t.landing.footerContact}
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-8 text-xs text-slate-500 dark:text-slate-500">{t.landing.footerCopyright}</div>
         </div>
       </footer>
+
+      <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.landing.buyDialogTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400">{t.landing.buyDialogBody}</p>
+            <div className="space-y-2">
+              <Label htmlFor="buyEmail">{t.common.email}</Label>
+              <Input
+                id="buyEmail"
+                type="email"
+                value={buyEmail}
+                onChange={(e) => {
+                  setBuyEmail(e.target.value);
+                  if (buyError) setBuyError(null);
+                }}
+                placeholder="you@example.com"
+                disabled={buyLoading}
+              />
+              {buyError ? <div className="text-sm text-red-600">{buyError}</div> : null}
+            </div>
+
+            <Button type="button" className="w-full gap-2" onClick={startCheckout} disabled={buyLoading || !emailOk}>
+              {buyLoading ? (
+                t.common.loading
+              ) : (
+                <>
+                  {t.landing.buyDialogCta}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+
+            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
+              <FileText className="h-4 w-4 mt-0.5" />
+              {/* TODO(i18n): landing.checkoutMicroTrust */}
+              {(t as any)?.landing?.checkoutMicroTrust}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/*
+        Required new i18n keys (t.landing.*):
+        - navHow
+        - navPreview
+        - heroHeadlineSales
+        - heroSubtitleSales
+        - socialProof
+        - heroWidgetToday
+        - heroWidgetTodayHint
+        - heroWidgetOverdue
+        - heroWidgetOverdueHint
+        - heroWidgetCompletion
+        - heroWidgetCompletionHint
+        - howTitle
+        - howSubtitle
+        - howStep1Title
+        - howStep1Desc
+        - howStep2Title
+        - howStep2Desc
+        - howStep3Title
+        - howStep3Desc
+        - spotlightTitle
+        - spotlightSubtitle
+        - featureTimeAwareHomeTitle
+        - featureTimeAwareHomeDesc
+        - featureReflectionTitle
+        - featureReflectionDesc
+        - featureInsightsTitle
+        - featureInsightsDesc
+        - featureProofPageTitle
+        - featureProofPageDesc
+        - previewImageNote
+        - refundNote (optional)
+        - checkoutMicroTrust
+        - checkoutInvalidEmail
+      */}
     </div>
   );
 }

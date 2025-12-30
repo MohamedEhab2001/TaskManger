@@ -6,10 +6,13 @@ export interface IUser extends Document {
   passwordHash: string;
   name: string;
   role: 'user' | 'admin';
-  plan: 'free' | 'pro';
+  plan: 'free' | 'pro' | 'lifetime';
   subscriptionStatus: 'none' | 'active' | 'past_due' | 'canceled';
   subscriptionStartedAt?: Date;
   subscriptionEndsAt?: Date;
+  hasPurchasedLifetime?: boolean;
+  stripeCustomerId?: string;
+  stripeLastSessionId?: string;
   lastLoginAt?: Date;
   isDisabled: boolean;
   createdAt: Date;
@@ -41,7 +44,7 @@ const UserSchema = new Schema<IUser>(
     },
     plan: {
       type: String,
-      enum: ['free', 'pro'],
+      enum: ['free', 'pro', 'lifetime'],
       default: 'free',
     },
     subscriptionStatus: {
@@ -54,6 +57,16 @@ const UserSchema = new Schema<IUser>(
     },
     subscriptionEndsAt: {
       type: Date,
+    },
+    hasPurchasedLifetime: {
+      type: Boolean,
+      default: false,
+    },
+    stripeCustomerId: {
+      type: String,
+    },
+    stripeLastSessionId: {
+      type: String,
     },
     lastLoginAt: {
       type: Date,
@@ -72,6 +85,9 @@ UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ plan: 1 });
 UserSchema.index({ subscriptionStatus: 1 });
+UserSchema.index({ hasPurchasedLifetime: 1 });
+UserSchema.index({ stripeCustomerId: 1 });
+UserSchema.index({ stripeLastSessionId: 1 });
 UserSchema.index({ createdAt: -1 });
 
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

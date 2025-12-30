@@ -11,7 +11,7 @@ import mongoose from 'mongoose';
 const tagGroupSchema = z.object({
   name: z.object({
     en: z.string().min(1),
-    ar: z.string().min(1),
+    ar: z.string().optional(),
   }),
   color: z.string(),
   icon: z.string(),
@@ -21,7 +21,7 @@ const tagSchema = z.object({
   groupId: z.string(),
   name: z.object({
     en: z.string().min(1),
-    ar: z.string().min(1),
+    ar: z.string().optional(),
   }),
   color: z.string().optional(),
 });
@@ -68,7 +68,10 @@ export async function createTagGroup(data: z.infer<typeof tagGroupSchema>) {
 
   const tagGroup = await TagGroup.create({
     userId: user.userId,
-    name: validated.name,
+    name: {
+      en: validated.name.en,
+      ar: validated.name.ar ?? '',
+    },
     color: validated.color,
     icon: validated.icon,
   });
@@ -89,7 +92,10 @@ export async function updateTagGroup(id: string, data: z.infer<typeof tagGroupSc
   const tagGroup = await TagGroup.findOneAndUpdate(
     { _id: new mongoose.Types.ObjectId(id), userId: user.userId },
     {
-      name: validated.name,
+      name: {
+        en: validated.name.en,
+        ar: validated.name.ar ?? '',
+      },
       color: validated.color,
       icon: validated.icon,
     },
@@ -138,7 +144,10 @@ export async function createTag(data: z.infer<typeof tagSchema>) {
   const tag = await Tag.create({
     userId: user.userId,
     groupId: new mongoose.Types.ObjectId(validated.groupId),
-    name: validated.name,
+    name: {
+      en: validated.name.en,
+      ar: validated.name.ar ?? '',
+    },
     color: validated.color,
   });
 
@@ -159,7 +168,10 @@ export async function updateTag(id: string, data: z.infer<typeof tagSchema>) {
     { _id: new mongoose.Types.ObjectId(id), userId: user.userId },
     {
       groupId: new mongoose.Types.ObjectId(validated.groupId),
-      name: validated.name,
+      name: {
+        en: validated.name.en,
+        ar: validated.name.ar ?? '',
+      },
       color: validated.color,
     },
     { new: true }

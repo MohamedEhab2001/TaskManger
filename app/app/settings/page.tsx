@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Upload } from 'lucide-react';
 import { getTasks } from '@/lib/actions/tasks';
+import { runTimeTrackingSanityTest } from '@/lib/actions/tasks';
+import { changePasswordAction } from '@/lib/actions/settings';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
@@ -16,6 +18,53 @@ export default function SettingsPage() {
   const [dailyCapacity, setDailyCapacity] = useState(
     typeof window !== 'undefined' ? localStorage.getItem('dailyCapacity') || '120' : '120'
   );
+
+  const [pwLoading, setPwLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  async function runSanityTest() {
+    try {
+      const result = await runTimeTrackingSanityTest();
+      toast.success(
+        `Time sanity OK: ${result.totalSeconds}s, sessions=${result.sessionsCount}, status=${result.status}`
+      );
+    } catch (error: any) {
+      toast.error(error?.message || 'Sanity test failed');
+    }
+  }
+
+  async function submitChangePassword() {
+    if (newPassword !== confirmNewPassword) {
+      toast.error(t.settings.passwordMismatch);
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const res = await changePasswordAction({ currentPassword, newPassword });
+      if ((res as any)?.success) {
+        toast.success(t.settings.passwordChanged);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        window.location.href = '/login';
+        return;
+      }
+
+      const code = (res as any)?.error;
+      if (code === 'INVALID_CURRENT_PASSWORD') {
+        toast.error(t.settings.passwordChangeFailed);
+      } else {
+        toast.error(t.settings.passwordChangeFailed);
+      }
+    } catch {
+      toast.error(t.settings.passwordChangeFailed);
+    } finally {
+      setPwLoading(false);
+    }
+  }
 
   function saveDailyCapacity() {
     localStorage.setItem('dailyCapacity', dailyCapacity);
@@ -88,6 +137,48 @@ export default function SettingsPage() {
 
         <div>
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
+            {t.settings.changePasswordTitle}
+          </h2>
+          <div className="grid gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">{t.settings.currentPassword}</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                disabled={pwLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">{t.settings.newPassword}</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={pwLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">{t.settings.confirmNewPassword}</Label>
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                disabled={pwLoading}
+              />
+            </div>
+
+            <Button type="button" onClick={submitChangePassword} disabled={pwLoading}>
+              {pwLoading ? t.common.loading : t.common.save}
+            </Button>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
             {t.settings.dailyWorkMinutes}
           </h2>
           <div className="flex gap-4">
@@ -120,6 +211,20 @@ export default function SettingsPage() {
             </Button>
           </div>
         </div>
+
+        {process.env.NODE_ENV !== 'production' ? (
+          <div className="pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={runSanityTest}
+              className="h-6 px-2 text-[10px] opacity-0 hover:opacity-100 focus:opacity-100"
+            >
+              Run time sanity test
+            </Button>
+          </div>
+        ) : null}
       </Card>
     </div>
   );

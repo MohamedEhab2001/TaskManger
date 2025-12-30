@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { loginAction } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useI18n } from '@/lib/i18n/context';
 import { Globe } from 'lucide-react';
 
@@ -53,7 +52,6 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">{t.common.email}</Label>
               <Input
                 id="email"
                 name="email"
@@ -66,7 +64,6 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">{t.common.password}</Label>
               <Input
                 id="password"
                 name="password"
@@ -88,12 +85,6 @@ export default function LoginPage() {
               {loading ? t.common.loading : t.common.login}
             </Button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-            <p className="text-xs text-center text-slate-500 dark:text-slate-400">
-              Default credentials: admin@local.dev / Admin12345!
-            </p>
-          </div>
         </div>
       </div>
     </div>

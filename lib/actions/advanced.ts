@@ -15,9 +15,11 @@ export async function getTasksWithFriction() {
 
   await connectDB();
 
+  const userIdMatch = { $in: [user.userId, user.userId.toString()] };
+
   const tasks = await Task.find({
-    userId: user.userId,
-    status: { $in: ['todo', 'doing'] },
+    userId: userIdMatch,
+    status: { $in: ['todo', 'doing', 'hold'] },
   })
     .populate('tags')
     .sort({ isPinned: -1, createdAt: -1 })
@@ -47,15 +49,25 @@ export interface TagTimeData {
   efficiency: 'efficient' | 'inefficient' | 'neutral';
 }
 
-export async function getTagTimeCostAnalytics() {
+export async function getTagTimeCostAnalytics(range?: { from: string; to: string } | null) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
   await connectDB();
 
-  const tags = await Tag.find({ userId: user.userId }).populate('groupId').lean();
+  const userIdMatch = { $in: [user.userId, user.userId.toString()] };
+
+  const tags = await Tag.find({ userId: userIdMatch }).populate('groupId').lean();
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const defaultFrom = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+  defaultFrom.setHours(0, 0, 0, 0);
+  const defaultTo = new Date(now);
+  defaultTo.setHours(23, 59, 59, 999);
+
+  const from = typeof range?.from === 'string' ? new Date(range.from) : defaultFrom;
+  const to = typeof range?.to === 'string' ? new Date(range.to) : defaultTo;
+  const safeFrom = Number.isNaN(from.getTime()) ? defaultFrom : from;
+  const safeTo = Number.isNaN(to.getTime()) ? defaultTo : to;
 
   let totalWeeklyMinutes = 0;
 
@@ -73,9 +85,9 @@ export async function getTagTimeCostAnalytics() {
 
   const tagDataPromises: Promise<TagDataTemp>[] = tags.map(async (tag) => {
     const tasks = await Task.find({
-      userId: user.userId,
+      userId: userIdMatch,
       tags: tag._id,
-      updatedAt: { $gte: weekAgo },
+      updatedAt: { $gte: safeFrom, $lte: safeTo },
     }).lean();
 
     const totalTasks = tasks.length;
@@ -83,13 +95,14 @@ export async function getTagTimeCostAnalytics() {
 
     let totalMinutes = 0;
     tasks.forEach((t) => {
+      const ttSeconds = (t as any)?.timeTracking?.totalSeconds;
+      if (typeof ttSeconds === 'number' && ttSeconds > 0) {
+        totalMinutes += Math.round(ttSeconds / 60);
+        return;
+      }
       if (t.actualMinutes) {
         totalMinutes += t.actualMinutes;
-      } else if (t.completedAt && t.lastStatusChangeAt) {
-        const duration = Math.round(
-          (new Date(t.completedAt).getTime() - new Date(t.lastStatusChangeAt).getTime()) / (1000 * 60)
-        );
-        totalMinutes += Math.max(duration, 0);
+        return;
       }
     });
 

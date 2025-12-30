@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Edit, Trash2, Tag as TagIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Edit, Trash2, Tag as TagIcon, Link2, RefreshCcw } from 'lucide-react';
 import { getTags, getTagGroups, createTag, updateTag, deleteTag, createTagGroup, updateTagGroup, deleteTagGroup } from '@/lib/actions/tags';
+import { createOrGetClientShareForTag, getClientShareForTag, regenerateClientShareToken, updateClientShare } from '@/lib/actions/clientShare';
 import { toast } from 'sonner';
 
 export default function TagsPage() {
@@ -20,6 +22,15 @@ export default function TagsPage() {
   const [tagDialog, setTagDialog] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
   const [editingTag, setEditingTag] = useState<any>(null);
+
+  const [shareDialog, setShareDialog] = useState(false);
+  const [shareTag, setShareTag] = useState<any>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareData, setShareData] = useState<any>(null);
+  const [shareForm, setShareForm] = useState({
+    title: '',
+    expiresAt: '',
+  });
 
   const [groupForm, setGroupForm] = useState({
     nameEn: '',
@@ -35,11 +46,7 @@ export default function TagsPage() {
     color: '',
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [groupsData, tagsData] = await Promise.all([
@@ -53,12 +60,106 @@ export default function TagsPage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  async function openShare(tag: any) {
+    setShareDialog(true);
+    setShareTag(tag);
+    setShareData(null);
+    setShareLoading(true);
+
+    try {
+      const existing = await getClientShareForTag(tag._id);
+      setShareData(existing);
+      setShareForm({
+        title: existing?.title || `${tag?.name?.[language] || tag?.name?.en || ''} - ${t.share.publicPageTitle}`,
+        expiresAt: existing?.expiresAt ? new Date(existing.expiresAt).toISOString().slice(0, 16) : '',
+      });
+    } catch (e) {
+      toast.error('Failed to load share');
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  function getShareUrl(token: string) {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/share/${token}`;
+  }
+
+  async function handleGenerateOrSaveShare() {
+    if (!shareTag) return;
+    setShareLoading(true);
+    try {
+      if (!shareData) {
+        const created = await createOrGetClientShareForTag({
+          tagId: shareTag._id,
+          title: shareForm.title || `${shareTag?.name?.[language] || ''} - ${t.share.publicPageTitle}`,
+          defaultLanguage: language,
+          expiresAt: shareForm.expiresAt ? new Date(shareForm.expiresAt).toISOString() : undefined,
+        } as any);
+        setShareData(created);
+      } else {
+        const updated = await updateClientShare({
+          shareId: shareData.shareId,
+          title: shareForm.title,
+          expiresAt: shareForm.expiresAt ? new Date(shareForm.expiresAt).toISOString() : null,
+        });
+        setShareData(updated);
+      }
+
+      toast.success(t.share.saveChanges);
+    } catch (e) {
+      toast.error('Failed to save share');
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  async function handleCopyLink() {
+    if (!shareData?.token) return;
+    try {
+      await navigator.clipboard.writeText(getShareUrl(shareData.token));
+      toast.success(t.share.linkCopied);
+    } catch (e) {
+      toast.error('Failed to copy');
+    }
+  }
+
+  async function handleToggleActive(nextActive: boolean) {
+    if (!shareData?.shareId) return;
+    setShareLoading(true);
+    try {
+      const updated = await updateClientShare({ shareId: shareData.shareId, isActive: nextActive });
+      setShareData(updated);
+    } catch (e) {
+      toast.error('Failed to update');
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!shareData?.shareId) return;
+    setShareLoading(true);
+    try {
+      const updated = await regenerateClientShareToken(shareData.shareId);
+      setShareData((prev: any) => ({ ...prev, token: updated.token }));
+    } catch (e) {
+      toast.error('Failed to regenerate');
+    } finally {
+      setShareLoading(false);
+    }
   }
 
   async function handleGroupSubmit() {
     try {
       const data = {
-        name: { en: groupForm.nameEn, ar: groupForm.nameAr },
+        name: { en: groupForm.nameEn, ar: '' },
         color: groupForm.color,
         icon: groupForm.icon,
       };
@@ -83,7 +184,7 @@ export default function TagsPage() {
     try {
       const data = {
         groupId: tagForm.groupId,
-        name: { en: tagForm.nameEn, ar: tagForm.nameAr },
+        name: { en: tagForm.nameEn, ar: '' },
         color: tagForm.color || undefined,
       };
 
@@ -117,7 +218,7 @@ export default function TagsPage() {
     setEditingGroup(group);
     setGroupForm({
       nameEn: group.name.en,
-      nameAr: group.name.ar,
+      nameAr: '',
       color: group.color,
       icon: group.icon,
     });
@@ -129,7 +230,7 @@ export default function TagsPage() {
     setTagForm({
       groupId: tag.groupId._id || tag.groupId,
       nameEn: tag.name.en,
-      nameAr: tag.name.ar,
+      nameAr: '',
       color: tag.color || '',
     });
     setTagDialog(true);
@@ -184,7 +285,7 @@ export default function TagsPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                    {group.name[language]}
+                    {group.name?.[language] || group.name?.en || ''}
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
                     {tags.filter((t) => t.groupId._id === group._id || t.groupId === group._id).length} tags
@@ -217,8 +318,15 @@ export default function TagsPage() {
                     key={tag._id}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
                   >
-                    <span className="text-sm font-medium">{tag.name[language]}</span>
+                    <span className="text-sm font-medium">{tag.name?.[language] || tag.name?.en || ''}</span>
                     <div className="flex gap-1">
+                      <button
+                        onClick={() => openShare(tag)}
+                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        title={t.share.shareWithClient}
+                      >
+                        <Link2 className="w-3 h-3" />
+                      </button>
                       <button
                         onClick={() => editTag(tag)}
                         className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -267,14 +375,6 @@ export default function TagsPage() {
               />
             </div>
             <div>
-              <Label>{t.tags.groupName} (Arabic)</Label>
-              <Input
-                value={groupForm.nameAr}
-                onChange={(e) => setGroupForm({ ...groupForm, nameAr: e.target.value })}
-                placeholder="عمل"
-              />
-            </div>
-            <div>
               <Label>{t.tags.color}</Label>
               <Input
                 type="color"
@@ -308,14 +408,6 @@ export default function TagsPage() {
                 placeholder="Meeting"
               />
             </div>
-            <div>
-              <Label>{t.tags.tagName} (Arabic)</Label>
-              <Input
-                value={tagForm.nameAr}
-                onChange={(e) => setTagForm({ ...tagForm, nameAr: e.target.value })}
-                placeholder="اجتماع"
-              />
-            </div>
             <div className="flex gap-4">
               <Button onClick={handleTagSubmit} className="flex-1">
                 {t.common.save}
@@ -323,6 +415,95 @@ export default function TagsPage() {
               <Button variant="outline" onClick={() => setTagDialog(false)}>
                 {t.common.cancel}
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareDialog} onOpenChange={setShareDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.share.shareWithClient}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>{t.share.projectTitle}</Label>
+              <Input
+                value={shareForm.title}
+                onChange={(e) => setShareForm({ ...shareForm, title: e.target.value })}
+                placeholder={t.share.publicPageTitle}
+                disabled={shareLoading}
+              />
+            </div>
+
+            <div>
+              <Label>{t.share.expiresAt}</Label>
+              <Input
+                type="datetime-local"
+                value={shareForm.expiresAt}
+                onChange={(e) => setShareForm({ ...shareForm, expiresAt: e.target.value })}
+                disabled={shareLoading}
+              />
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShareForm({ ...shareForm, expiresAt: '' })}
+                  disabled={shareLoading}
+                >
+                  {t.share.never}
+                </Button>
+              </div>
+            </div>
+
+            {shareData?.token ? (
+              <div className="space-y-2">
+                <Label>Link</Label>
+                <div className="flex gap-2">
+                  <Input value={getShareUrl(shareData.token)} readOnly />
+                  <Button onClick={handleCopyLink} disabled={shareLoading}>
+                    {t.share.copyLink}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-slate-600">{t.share.generateLink}</div>
+            )}
+
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                {shareData?.token && (
+                  <Badge variant={shareData?.isActive ? 'outline' : 'secondary'}>
+                    {shareData?.isActive ? t.share.active : t.share.inactive}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                {shareData?.token && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleToggleActive(!shareData.isActive)}
+                    disabled={shareLoading}
+                  >
+                    {shareData.isActive ? t.share.deactivate : t.share.activate}
+                  </Button>
+                )}
+
+                {shareData?.token && (
+                  <Button type="button" variant="outline" onClick={handleRegenerate} disabled={shareLoading}>
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    {t.share.regenerate}
+                  </Button>
+                )}
+
+                <Button type="button" onClick={handleGenerateOrSaveShare} disabled={shareLoading}>
+                  {shareData?.token ? t.share.saveChanges : t.share.generateLink}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

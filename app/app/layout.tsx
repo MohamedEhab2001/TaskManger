@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
 import { useTheme } from 'next-themes';
@@ -10,12 +11,14 @@ import {
   ListTodo,
   Tags,
   BarChart3,
+  KeyRound,
   Settings,
   LogOut,
   Moon,
   Sun,
   Globe,
   Menu,
+  Target,
   X,
 } from 'lucide-react';
 import { logoutAction } from '@/lib/actions/auth';
@@ -28,6 +31,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoOk, setLogoOk] = useState(true);
+
+  const hideLanguageToggle = pathname === '/app' || pathname === '/app/dashboard';
 
   const navigation = [
     {
@@ -56,6 +62,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       icon: BarChart3,
     },
     {
+      name: t.nav.workspaceVariables,
+      href: '/app/workspace-variables',
+      icon: KeyRound,
+    },
+    {
       name: t.nav.settings,
       href: '/app/settings',
       icon: Settings,
@@ -71,9 +82,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                TaskMaster
-              </h1>
+              <Link href="/app" className="flex items-center gap-3">
+                <div className="relative h-8 w-8">
+                  {logoOk ? (
+                    <Image
+                      src="/brand/taskello-logo.svg"
+                      alt="Taskello"
+                      fill
+                      className="object-contain"
+                      priority
+                      onError={() => setLogoOk(false)}
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center">
+                      <Target className="w-4 h-4 text-slate-900 dark:text-white" />
+                    </div>
+                  )}
+                </div>
+                <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Taskello</span>
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
@@ -122,14 +149,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Moon className="w-4 h-4" />
                 )}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-              >
-                <Globe className="w-4 h-4" />
-              </Button>
             </div>
             <form action={logoutAction}>
               <Button
@@ -156,9 +175,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              TaskMaster
-            </h1>
+            <Link href="/app" className="flex items-center gap-2">
+              <div className="relative h-7 w-7">
+                {logoOk ? (
+                  <Image
+                    src="/brand/taskello-logo.svg"
+                    alt="Taskello"
+                    fill
+                    className="object-contain"
+                    priority
+                    onError={() => setLogoOk(false)}
+                  />
+                ) : (
+                  <div className="h-7 w-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-slate-900 dark:text-white" />
+                  </div>
+                )}
+              </div>
+              <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">Taskello</span>
+            </Link>
             <div className="w-10" />
           </div>
         </div>

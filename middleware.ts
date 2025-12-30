@@ -16,17 +16,6 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/admin')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    const payload = verifyTokenEdge(token);
-    if (!payload || payload.role !== 'admin') {
-      return NextResponse.redirect(new URL('/app/dashboard', request.url));
-    }
-  }
-
   if (pathname.startsWith('/app') && !pathname.startsWith('/app/api')) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
@@ -41,5 +30,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/login', '/signup', '/admin/:path*'],
+  matcher: ['/app/:path*', '/login', '/signup'],
 };

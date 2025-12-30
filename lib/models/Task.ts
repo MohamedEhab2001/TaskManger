@@ -1,7 +1,55 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type TaskStatus = 'todo' | 'doing' | 'done' | 'archived';
+export type TaskStatus = 'todo' | 'doing' | 'hold' | 'done' | 'archived';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface ITaskTimeSession {
+  startedAt: Date;
+  endedAt: Date;
+  durationSeconds: number;
+}
+
+export interface ITaskTimeTracking {
+  totalSeconds: number;
+  isRunning: boolean;
+  lastStartedAt: Date | null;
+  sessions: ITaskTimeSession[];
+}
+
+export interface ITaskSubtask {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  isDone: boolean;
+  createdAt: Date;
+  doneAt: Date | null;
+}
+
+export interface ITaskCompletionReflection {
+  completionRate: number;
+  notes: string;
+  createdAt: Date;
+  updatedAt: Date;
+  autoSuggestionsAccepted?: boolean;
+}
+
+export interface ITaskDoneTransitionMeta {
+  lastStatus: TaskStatus;
+  doneAt: Date | null;
+  doneTriggeredReflectionAt: Date | null;
+}
+
+export type TaskAccuracyCategory = 'underestimated' | 'overestimated' | 'accurate';
+
+export interface ITaskEstimationResult {
+  estimatedMinutes: number;
+  actualMinutes: number;
+  deltaMinutes: number;
+  deltaPercent: number;
+  accuracyCategory: TaskAccuracyCategory;
+  accuracyScore: number;
+  thresholdPct: number;
+  computedAt: Date;
+}
 
 export interface ITask extends Document {
   _id: mongoose.Types.ObjectId;
@@ -12,14 +60,20 @@ export interface ITask extends Document {
   priority: TaskPriority;
   dueDate?: Date;
   startAt?: Date;
-  completedAt?: Date;
+  completedAt?: Date | null;
   tags: mongoose.Types.ObjectId[];
   estimatedMinutes?: number;
   actualMinutes?: number;
+  estimationResult?: ITaskEstimationResult | null;
+  timeTracking?: ITaskTimeTracking;
+  subtasks?: ITaskSubtask[];
+  completionReflection?: ITaskCompletionReflection | null;
+  doneTransitionMeta?: ITaskDoneTransitionMeta | null;
+  originalTaskId?: mongoose.Types.ObjectId | null;
   isPinned: boolean;
   reopenCount: number;
   priorityChangeCount: number;
-  lastStatusChangeAt?: Date;
+  lastStatusChangedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,7 +96,7 @@ const TaskSchema = new Schema<ITask>(
     },
     status: {
       type: String,
-      enum: ['todo', 'doing', 'done', 'archived'],
+      enum: ['todo', 'doing', 'hold', 'done', 'archived'],
       default: 'todo',
     },
     priority: {
@@ -76,6 +130,67 @@ const TaskSchema = new Schema<ITask>(
       type: Number,
       default: null,
     },
+    estimationResult: {
+      estimatedMinutes: { type: Number, default: null },
+      actualMinutes: { type: Number, default: null },
+      deltaMinutes: { type: Number, default: null },
+      deltaPercent: { type: Number, default: null },
+      accuracyCategory: { type: String, enum: ['underestimated', 'overestimated', 'accurate'], default: null },
+      accuracyScore: { type: Number, default: null },
+      thresholdPct: { type: Number, default: null },
+      computedAt: { type: Date, default: null },
+    },
+    timeTracking: {
+      totalSeconds: {
+        type: Number,
+        default: 0,
+      },
+      isRunning: {
+        type: Boolean,
+        default: false,
+      },
+      lastStartedAt: {
+        type: Date,
+        default: null,
+      },
+      sessions: {
+        type: [
+          {
+            startedAt: { type: Date, required: true },
+            endedAt: { type: Date, required: true },
+            durationSeconds: { type: Number, required: true },
+          },
+        ],
+        default: [],
+      },
+    },
+    subtasks: {
+      type: [
+        {
+          title: { type: String, required: true, trim: true },
+          isDone: { type: Boolean, default: false },
+          createdAt: { type: Date, default: Date.now },
+          doneAt: { type: Date, default: null },
+        },
+      ],
+      default: undefined,
+    },
+    completionReflection: {
+      completionRate: { type: Number, default: null },
+      notes: { type: String, default: '' },
+      createdAt: { type: Date, default: null },
+      updatedAt: { type: Date, default: null },
+      autoSuggestionsAccepted: { type: Boolean, default: null },
+    },
+    doneTransitionMeta: {
+      lastStatus: { type: String, enum: ['todo', 'doing', 'hold', 'done', 'archived'], default: null },
+      doneAt: { type: Date, default: null },
+      doneTriggeredReflectionAt: { type: Date, default: null },
+    },
+    originalTaskId: {
+      type: Schema.Types.ObjectId,
+      default: null,
+    },
     isPinned: {
       type: Boolean,
       default: false,
@@ -88,7 +203,7 @@ const TaskSchema = new Schema<ITask>(
       type: Number,
       default: 0,
     },
-    lastStatusChangeAt: {
+    lastStatusChangedAt: {
       type: Date,
       default: null,
     },
@@ -100,8 +215,10 @@ const TaskSchema = new Schema<ITask>(
 
 TaskSchema.index({ userId: 1 });
 TaskSchema.index({ userId: 1, status: 1 });
+TaskSchema.index({ userId: 1, completedAt: 1 });
 TaskSchema.index({ userId: 1, dueDate: 1 });
 TaskSchema.index({ userId: 1, tags: 1 });
+TaskSchema.index({ userId: 1, lastStatusChangedAt: 1 });
 TaskSchema.index({ userId: 1, createdAt: -1 });
 TaskSchema.index({ userId: 1, isPinned: -1, createdAt: -1 });
 

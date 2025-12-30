@@ -1,12 +1,21 @@
+export type FrictionFactorKey = 'overdue' | 'doingTime' | 'reopened' | 'priorityChanged' | 'timeMismatch';
+
+export type FrictionFactor =
+  | { key: 'overdue'; days: number }
+  | { key: 'doingTime'; days: number }
+  | { key: 'reopened'; count: number }
+  | { key: 'priorityChanged'; count: number }
+  | { key: 'timeMismatch'; percent: number };
+
 export interface FrictionScore {
   score: number;
   level: 'low' | 'medium' | 'high';
-  factors: string[];
+  factors: FrictionFactor[];
 }
 
 export function calculateFriction(task: any): FrictionScore {
   let score = 0;
-  const factors: string[] = [];
+  const factors: FrictionFactor[] = [];
 
   const now = new Date();
 
@@ -15,29 +24,31 @@ export function calculateFriction(task: any): FrictionScore {
     const overdueScore = Math.min(overdueDays * 5, 30);
     score += overdueScore;
     if (overdueDays > 0) {
-      factors.push(`Overdue ${overdueDays} day${overdueDays > 1 ? 's' : ''}`);
+      factors.push({ key: 'overdue', days: overdueDays });
     }
   }
 
-  if (task.status === 'doing' && task.lastStatusChangeAt) {
-    const doingDays = Math.floor((now.getTime() - new Date(task.lastStatusChangeAt).getTime()) / (1000 * 60 * 60 * 24));
+  if (task.status === 'doing' && task.lastStatusChangedAt) {
+    const doingDays = Math.floor(
+      (now.getTime() - new Date(task.lastStatusChangedAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
     if (doingDays > 2) {
       const doingScore = Math.min(doingDays * 3, 20);
       score += doingScore;
-      factors.push(`In progress ${doingDays} day${doingDays > 1 ? 's' : ''}`);
+      factors.push({ key: 'doingTime', days: doingDays });
     }
   }
 
   if (task.reopenCount > 0) {
     const reopenScore = Math.min(task.reopenCount * 10, 25);
     score += reopenScore;
-    factors.push(`Reopened ${task.reopenCount} time${task.reopenCount > 1 ? 's' : ''}`);
+    factors.push({ key: 'reopened', count: task.reopenCount });
   }
 
   if (task.priorityChangeCount > 0) {
     const priorityScore = Math.min(task.priorityChangeCount * 4, 15);
     score += priorityScore;
-    factors.push(`Priority changed ${task.priorityChangeCount} time${task.priorityChangeCount > 1 ? 's' : ''}`);
+    factors.push({ key: 'priorityChanged', count: task.priorityChangeCount });
   }
 
   if (task.estimatedMinutes && task.actualMinutes && task.estimatedMinutes > 0) {
@@ -46,7 +57,7 @@ export function calculateFriction(task: any): FrictionScore {
     if (mismatchPercent > 50) {
       const mismatchScore = Math.min(mismatchPercent / 5, 10);
       score += mismatchScore;
-      factors.push(`Time estimate off by ${mismatchPercent}%`);
+      factors.push({ key: 'timeMismatch', percent: mismatchPercent });
     }
   }
 

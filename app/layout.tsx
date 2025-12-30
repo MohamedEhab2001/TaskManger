@@ -7,8 +7,8 @@ import { seedDatabase } from '@/lib/seed';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TaskMaster - Premium Task Management',
-  description: 'Smart task management with insights and planning',
+  title: 'Taskello',
+  description: 'Taskello - time-aware task management with insights and planning',
   openGraph: {
     images: [
       {

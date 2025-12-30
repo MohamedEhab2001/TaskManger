@@ -44,6 +44,66 @@ A professional, feature-rich task management application with deep insights, sma
 - **Time Tracking** - Estimated vs. actual minutes for tasks
 - **Import/Export** - Export tasks as JSON or CSV, import JSON data
 
+### Shareable Client Page (Read-only)
+
+This feature lets freelancers generate a **public, read-only status report** for a specific client/project.
+
+#### How it works
+
+1. In the app, go to **Tags & Groups**.
+2. On a specific tag (example: `Client: ACME`), click the **link icon** (Share with client).
+3. Generate a share link (or manage an existing one):
+   - Set a project title (example: “ACME Project Progress”)
+   - Optionally set an expiration date
+   - Copy the link to send to your client
+   - Toggle Active/Inactive
+   - Regenerate token (invalidates the old link)
+
+The generated link looks like:
+
+`/share/[token]`
+
+#### What the client sees
+
+The client page is a clean, printable report-style page that shows:
+
+- Project title and status (Active / Completed)
+- Last updated timestamp
+- Progress summary:
+  - Total tasks
+  - Completed tasks
+  - Progress %
+  - Total time spent
+- Task list (read-only):
+  - Title
+  - Status (Todo / Doing / Done)
+  - Time spent
+  - Simple estimation feedback: Underestimated / Overestimated / Accurate
+- Simple insights:
+  - Average estimation accuracy %
+  - Positive trust-building explanation text
+
+Notes:
+
+- The client report **only includes tasks under that tag**.
+- `archived` tasks are never shown.
+- `hold` tasks are hidden from the client report (only Todo/Doing/Done are shown).
+
+#### Security / privacy rules
+
+- The share link is protected by a long random token (unguessable).
+- The client route is **read-only** (no mutations).
+- If a share is inactive → the page returns **404**.
+- If the share is expired → an **expired** page is shown.
+- SEO is disabled on the share page via `robots` metadata (`noindex`, `nofollow`).
+- The UI does not show internal database IDs.
+
+#### Language / RTL
+
+- The client page supports **English and Arabic**.
+- It defaults to the freelancer language at link creation time.
+- The client can switch language manually, and RTL is applied when Arabic is selected.
+
 ## Tech Stack
 
 - **Framework**: Next.js 13 (App Router)
@@ -111,6 +171,8 @@ On first run, the app seeds:
 │   │   ├── tags/         # Tag & group management
 │   │   ├── insights/     # Per-tag analytics
 │   │   └── settings/     # App settings
+│   ├── share/            # Public shareable client report
+│   │   └── [token]/      # Token-based read-only status page
 │   ├── login/            # Login page
 │   └── layout.tsx        # Root layout with providers
 ├── lib/
@@ -119,12 +181,14 @@ On first run, the app seeds:
 │   │   ├── tasks.ts      # Task CRUD + bulk operations
 │   │   ├── tags.ts       # Tag/group CRUD
 │   │   ├── analytics.ts  # Dashboard & health analytics
+│   │   ├── clientShare.ts # Shareable client page actions
 │   │   └── planner.ts    # Smart weekly planner
 │   ├── models/           # Mongoose models
 │   │   ├── User.ts
 │   │   ├── TagGroup.ts
 │   │   ├── Tag.ts
-│   │   └── Task.ts
+│   │   ├── Task.ts
+│   │   └── ClientShare.ts
 │   ├── i18n/             # Internationalization
 │   │   ├── messages.ts   # All translations
 │   │   └── context.tsx   # Language context
@@ -200,6 +264,19 @@ On first run, the app seeds:
 - actualMinutes
 - isPinned
 - Multiple compound indexes for efficient queries
+
+### ClientShare
+
+Used for the public `/share/[token]` report pages.
+
+- userId
+- tagId
+- token (unique, indexed)
+- title
+- isActive
+- expiresAt (optional, nullable)
+- defaultLanguage (en/ar)
+- createdAt / updatedAt
 
 ## API Routes (Server Actions)
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,15 +11,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Filter, Calendar as CalendarIcon, Pin, Edit, Trash2, Sparkles, AlertTriangle, Zap } from 'lucide-react';
-import { getTasks, createTask, updateTask, deleteTask, bulkUpdateTasks, bulkDeleteTasks } from '@/lib/actions/tasks';
-import { getTags, getTagGroups } from '@/lib/actions/tags';
+import { Plus, Calendar as CalendarIcon, Pin, Edit, Trash2, Sparkles, AlertTriangle, Zap, Clock, RotateCcw } from 'lucide-react';
+import { CompletionReflectionModal } from '@/components/completion-reflection-modal';
+import { getTasks, createTask, updateTask, deleteTask, bulkDeleteTasks, resetTaskTimeTracking, setTaskTrackedMinutes } from '@/lib/actions/tasks';
+import { getTags } from '@/lib/actions/tags';
 import { generateWeeklyPlan, acceptWeeklyPlan } from '@/lib/actions/planner';
 import { createStarterTasks, suggestTaskBreakdown, acceptTaskBreakdown } from '@/lib/actions/advanced';
 import { calculateFriction } from '@/lib/friction';
@@ -34,7 +36,6 @@ export default function TasksPage() {
   const [tags, setTags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [quickTags, setQuickTags] = useState<string[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [taskDialog, setTaskDialog] = useState(false);
   const [plannerDialog, setPlannerDialog] = useState(false);
@@ -45,21 +46,39 @@ export default function TasksPage() {
   const [breakdownDialog, setBreakdownDialog] = useState(false);
   const [breakdownData, setBreakdownData] = useState<any>(null);
 
+  const [timeDialogOpen, setTimeDialogOpen] = useState(false);
+  const [timeDialogTask, setTimeDialogTask] = useState<any>(null);
+  const [timeMinutes, setTimeMinutes] = useState('');
+
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [reflectionTask, setReflectionTask] = useState<any>(null);
+
+  const [frictionDialogOpen, setFrictionDialogOpen] = useState(false);
+  const [frictionDialogData, setFrictionDialogData] = useState<{
+    title: string;
+    score: number;
+    level: 'low' | 'medium' | 'high';
+    factors: any[];
+    color: string;
+  } | null>(null);
+
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
+    tags: [] as string[],
     sort: 'createdAt',
   });
 
   const [formData, setFormData] = useState<{
     title: string;
     description: string;
-    status: 'todo' | 'doing' | 'done' | 'archived';
+    status: 'todo' | 'doing' | 'hold' | 'done' | 'archived';
     priority: 'low' | 'medium' | 'high' | 'urgent';
     dueDate: string;
     estimatedMinutes: string;
     tags: string[];
     isPinned: boolean;
+    subtasks: { _id?: string; title: string; isDone?: boolean }[];
   }>({
     title: '',
     description: '',
@@ -69,22 +88,17 @@ export default function TasksPage() {
     estimatedMinutes: '',
     tags: [],
     isPinned: false,
+    subtasks: [],
   });
 
-  useEffect(() => {
-    loadData();
-    if (searchParams.get('action') === 'planner') {
-      setPlannerDialog(true);
-    }
-  }, [filters, searchParams]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [tasksData, tagsData] = await Promise.all([
         getTasks({
           status: filters.status as any,
           priority: filters.priority as any,
+          tags: filters.tags,
           search,
           sort: filters.sort,
         }),
@@ -97,13 +111,31 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [filters.priority, filters.sort, filters.status, filters.tags, search]);
+
+  useEffect(() => {
+    loadData();
+    if (searchParams.get('action') === 'planner') {
+      setPlannerDialog(true);
+    }
+  }, [loadData, searchParams]);
 
   async function handleSubmit() {
     try {
       const data = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        dueDate: formData.dueDate,
         estimatedMinutes: formData.estimatedMinutes ? parseInt(formData.estimatedMinutes) : undefined,
+        tags: formData.tags,
+        isPinned: formData.isPinned,
+        subtasks: formData.subtasks
+          .map((s) => ({
+            _id: s._id,
+            title: s.title,
+          }))
+          .filter((s) => typeof s.title === 'string' && s.title.trim().length > 0),
       };
 
       if (editingTask) {
@@ -132,6 +164,7 @@ export default function TasksPage() {
       estimatedMinutes: '',
       tags: [],
       isPinned: false,
+      subtasks: [],
     });
     setEditingTask(null);
   }
@@ -147,8 +180,36 @@ export default function TasksPage() {
       estimatedMinutes: task.estimatedMinutes?.toString() || '',
       tags: task.tags?.map((t: any) => t._id) || [],
       isPinned: task.isPinned || false,
+      subtasks: Array.isArray(task.subtasks)
+        ? task.subtasks.map((s: any) => ({
+            _id: s?._id,
+            title: s?.title || '',
+            isDone: Boolean(s?.isDone),
+          }))
+        : [],
     });
     setTaskDialog(true);
+  }
+
+  function addSubtaskRow() {
+    setFormData((prev) => ({
+      ...prev,
+      subtasks: [...prev.subtasks, { title: '' }],
+    }));
+  }
+
+  function updateSubtaskTitle(index: number, title: string) {
+    setFormData((prev) => ({
+      ...prev,
+      subtasks: prev.subtasks.map((s, i) => (i === index ? { ...s, title } : s)),
+    }));
+  }
+
+  function removeSubtaskRow(index: number) {
+    setFormData((prev) => ({
+      ...prev,
+      subtasks: prev.subtasks.filter((_, i) => i !== index),
+    }));
   }
 
   async function handleDelete(id: string) {
@@ -170,12 +231,6 @@ export default function TasksPage() {
       if (action === 'delete') {
         await bulkDeleteTasks(selectedTasks);
         toast.success(t.tasks.deleteSelected);
-      } else if (action === 'done') {
-        await bulkUpdateTasks(selectedTasks, { status: 'done' });
-        toast.success(t.tasks.markAsDone);
-      } else if (action === 'archive') {
-        await bulkUpdateTasks(selectedTasks, { status: 'archived' });
-        toast.success(t.tasks.archive);
       }
 
       setSelectedTasks([]);
@@ -251,24 +306,92 @@ export default function TasksPage() {
     return { friction, color: colors[friction.level] };
   }
 
-  async function quickUpdateStatus(taskId: string, status: 'todo' | 'doing' | 'done' | 'archived') {
-    const prev = tasks;
-    setTasks((current) => current.map((t) => (t._id === taskId ? { ...t, status } : t)));
+  function formatFrictionFactor(f: any) {
+    const template = (t.friction as any)?.[f?.key] as string | undefined;
+    if (!template) return '';
+
+    return template
+      .replace('{days}', String(f?.days ?? ''))
+      .replace('{count}', String(f?.count ?? ''))
+      .replace('{percent}', String(f?.percent ?? ''));
+  }
+
+  function formatTemplate(template: string, params: Record<string, string | number>) {
+    return template.replace(/\{(\w+)\}/g, (_, k) => String((params as any)[k] ?? ''));
+  }
+
+  function formatDuration(seconds: number) {
+    const safe = Math.max(0, Math.floor(Number(seconds) || 0));
+    const h = Math.floor(safe / 3600);
+    const m = Math.floor((safe % 3600) / 60);
+    const s = safe % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m`;
+    return `${s}s`;
+  }
+
+  function getDisplayedSeconds(task: any) {
+    const tt = task?.timeTracking;
+    if (!tt) return task?.computedTotalSeconds ?? 0;
+    return task?.computedTotalSeconds ?? tt.totalSeconds ?? 0;
+  }
+
+  function openTimeDialog(task: any) {
+    setTimeDialogTask(task);
+    const seconds = getDisplayedSeconds(task);
+    setTimeMinutes(String(Math.round((Number(seconds) || 0) / 60)));
+    setTimeDialogOpen(true);
+  }
+
+  async function handleResetTimeTracking() {
+    if (!timeDialogTask?._id) return;
     try {
-      await updateTask(taskId, { status });
+      await resetTaskTimeTracking(timeDialogTask._id);
+      toast.success('Time tracking reset');
+      setTimeDialogOpen(false);
+      setTimeDialogTask(null);
       loadData();
-    } catch (error) {
-      setTasks(prev);
-      toast.error('Failed to update task');
+    } catch {
+      toast.error('Failed to reset time');
     }
+  }
+
+  async function handleSaveTrackedMinutes() {
+    if (!timeDialogTask?._id) return;
+    try {
+      const minutes = Number(timeMinutes);
+      if (!Number.isFinite(minutes) || minutes < 0) {
+        toast.error('Invalid minutes');
+        return;
+      }
+      await setTaskTrackedMinutes(timeDialogTask._id, Math.floor(minutes));
+      toast.success('Time updated');
+      setTimeDialogOpen(false);
+      setTimeDialogTask(null);
+      loadData();
+    } catch {
+      toast.error('Failed to update time');
+    }
+  }
+
+  function getStatusLabel(status: string) {
+    if (status === 'todo') return t.tasks.statusTodo;
+    if (status === 'doing') return t.tasks.statusDoing;
+    if (status === 'hold') return t.tasks.statusHold;
+    if (status === 'done') return t.tasks.statusDone;
+    if (status === 'archived') return t.tasks.statusArchived;
+    return status;
   }
 
   function getTagLabel(tag: any) {
     return tag?.name?.en || tag?.name?.ar || tag?.name || '';
   }
 
-  function toggleQuickTag(tagId: string) {
-    setQuickTags((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
+  function toggleFilterTag(tagId: string) {
+    setFilters((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(tagId) ? prev.tags.filter((id) => id !== tagId) : [...prev.tags, tagId],
+    }));
   }
 
   function toggleFormTag(tagId: string) {
@@ -288,6 +411,7 @@ export default function TasksPage() {
   const statusColors: any = {
     todo: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
     doing: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+    hold: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
     done: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
     archived: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
   };
@@ -297,10 +421,10 @@ export default function TasksPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{t.tasks.title}</h1>
         <div className="flex gap-2">
-          <Button onClick={() => setPlannerDialog(true)} variant="outline">
+          {/* <Button onClick={() => setPlannerDialog(true)} variant="outline">
             <Sparkles className="w-4 h-4 mr-2" />
             {t.planner.title}
-          </Button>
+          </Button> */}
           <Button onClick={() => { resetForm(); setTaskDialog(true); }} data-new-task-btn>
             <Plus className="w-4 h-4 mr-2" />
             {t.tasks.newTask}
@@ -309,37 +433,39 @@ export default function TasksPage() {
       </div>
 
       <Card className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5">
+            <Zap className="w-5 h-5 text-purple-600" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-slate-900 dark:text-white">{t.friction.title}</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">{(t as any).friction.help}</div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-4">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px]">
             <Input
-              placeholder={t.tasks.quickAdd}
+              placeholder={t.common.search}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && search) {
-                  createTask({ title: search, tags: quickTags }).then(() => {
-                    setSearch('');
-                    setQuickTags([]);
-                    loadData();
-                    toast.success(t.tasks.taskCreated);
-                  });
-                }
-              }}
             />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
                 {t.tasks.tags}
-                {quickTags.length > 0 ? ` (${quickTags.length})` : ''}
+                {filters.tags.length > 0 ? ` (${filters.tags.length})` : ''}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {tags.map((tag) => (
                 <DropdownMenuCheckboxItem
                   key={tag._id}
-                  checked={quickTags.includes(tag._id)}
-                  onCheckedChange={() => toggleQuickTag(tag._id)}
+                  checked={filters.tags.includes(tag._id)}
+                  onCheckedChange={() => toggleFilterTag(tag._id)}
                 >
                   {getTagLabel(tag)}
                 </DropdownMenuCheckboxItem>
@@ -360,6 +486,7 @@ export default function TasksPage() {
               <SelectItem value="__clear__">{t.common.filter}</SelectItem>
               <SelectItem value="todo">{t.tasks.statusTodo}</SelectItem>
               <SelectItem value="doing">{t.tasks.statusDoing}</SelectItem>
+              <SelectItem value="hold">{t.tasks.statusHold}</SelectItem>
               <SelectItem value="done">{t.tasks.statusDone}</SelectItem>
             </SelectContent>
           </Select>
@@ -382,12 +509,6 @@ export default function TasksPage() {
 
         {selectedTasks.length > 0 && (
           <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <Button size="sm" variant="outline" onClick={() => handleBulkAction('done')}>
-              {t.tasks.markAsDone}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => handleBulkAction('archive')}>
-              {t.tasks.archive}
-            </Button>
             <Button size="sm" variant="destructive" onClick={() => handleBulkAction('delete')}>
               {t.tasks.deleteSelected}
             </Button>
@@ -419,15 +540,33 @@ export default function TasksPage() {
                     const { friction, color } = getFrictionBadge(task);
                     if (friction.score > 0) {
                       return (
-                        <Badge
-                          className={`${color} cursor-help`}
-                          title={friction.factors.join(' • ')}
-                        >
-                          <Zap className="w-3 h-3 mr-1" />
-                          {friction.level === 'low' && t.friction.low}
-                          {friction.level === 'medium' && t.friction.medium}
-                          {friction.level === 'high' && t.friction.high}
-                        </Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFrictionDialogData({
+                                    title: task.title,
+                                    score: friction.score,
+                                    level: friction.level,
+                                    factors: Array.isArray(friction.factors) ? friction.factors : [],
+                                    color,
+                                  });
+                                  setFrictionDialogOpen(true);
+                                }}
+                              >
+                                <Badge className={`${color} cursor-pointer`}>
+                                  <Zap className="w-3 h-3 mr-1" />
+                                  {friction.level === 'low' && t.friction.low}
+                                  {friction.level === 'medium' && t.friction.medium}
+                                  {friction.level === 'high' && t.friction.high}
+                                </Badge>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t.friction.explanation}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       );
                     }
                     return null;
@@ -435,23 +574,16 @@ export default function TasksPage() {
                   <Badge className={priorityColors[task.priority]}>
                     {t.tasks[`priority${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}` as keyof typeof t.tasks]}
                   </Badge>
-                  <Select value={task.status} onValueChange={(v) => quickUpdateStatus(task._id, v as any)}>
-                    <SelectTrigger className="h-7 px-2 w-[130px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todo">{t.tasks.statusTodo}</SelectItem>
-                      <SelectItem value="doing">{t.tasks.statusDoing}</SelectItem>
-                      <SelectItem value="done">{t.tasks.statusDone}</SelectItem>
-                      <SelectItem value="archived">{t.tasks.statusArchived}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Badge className={statusColors[task.status] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'}>
+                    {getStatusLabel(task.status)}
+                  </Badge>
+                  <button type="button" onClick={() => openTimeDialog(task)} className="inline-flex">
+                    <Badge variant="outline" className="gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDuration(getDisplayedSeconds(task))}
+                    </Badge>
+                  </button>
                 </div>
-                {task.description && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                    {task.description}
-                  </p>
-                )}
                 <div className="flex flex-wrap gap-2 text-sm text-slate-600 dark:text-slate-400">
                   {task.dueDate && (
                     <span className="flex items-center gap-1">
@@ -475,6 +607,18 @@ export default function TasksPage() {
                     <AlertTriangle className="w-4 h-4" />
                   </Button>
                 )}
+                {task.status === 'done' && Array.isArray(task.subtasks) && task.subtasks.length > 0 ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setReflectionTask(task);
+                      setReflectionOpen(true);
+                    }}
+                  >
+                    {t.reflection.view}
+                  </Button>
+                ) : null}
                 <Button size="sm" variant="ghost" onClick={() => editTask(task)}>
                   <Edit className="w-4 h-4" />
                 </Button>
@@ -533,17 +677,11 @@ export default function TasksPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>{t.tasks.status}</Label>
-                <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as any })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todo">{t.tasks.statusTodo}</SelectItem>
-                    <SelectItem value="doing">{t.tasks.statusDoing}</SelectItem>
-                    <SelectItem value="done">{t.tasks.statusDone}</SelectItem>
-                    <SelectItem value="archived">{t.tasks.statusArchived}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="mt-2">
+                  <Badge className={statusColors[formData.status] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'}>
+                    {getStatusLabel(formData.status)}
+                  </Badge>
+                </div>
               </div>
               <div>
                 <Label>{t.tasks.priority}</Label>
@@ -616,6 +754,37 @@ export default function TasksPage() {
                 })}
               </div>
             </div>
+
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <Label>{(t.tasks as any).subtasks || 'Completion criteria'}</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addSubtaskRow}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {(t.tasks as any).addSubtask || 'Add criterion'}
+                </Button>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {formData.subtasks.map((s, idx) => (
+                  <div key={s._id || idx} className="flex gap-2 items-center">
+                    <Input
+                      value={s.title}
+                      onChange={(e) => updateSubtaskTitle(idx, e.target.value)}
+                      placeholder={(t.tasks as any).subtaskPlaceholder || 'Criterion'}
+                    />
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeSubtaskRow(idx)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                {formData.subtasks.length === 0 ? (
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    {(t.tasks as any).noSubtasksHint || 'Add completion criteria to enable the completion reflection modal when marking Done.'}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <Button onClick={handleSubmit} className="flex-1">
                 {t.common.save}
@@ -623,6 +792,91 @@ export default function TasksPage() {
               <Button variant="outline" onClick={() => setTaskDialog(false)}>
                 {t.common.cancel}
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={timeDialogOpen} onOpenChange={setTimeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Time tracking</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              {timeDialogTask?.title || ''}
+            </div>
+            <div>
+              <Label>Tracked minutes</Label>
+              <Input
+                type="number"
+                min={0}
+                value={timeMinutes}
+                onChange={(e) => setTimeMinutes(e.target.value)}
+                placeholder="0"
+              />
+              <div className="mt-2 text-xs text-slate-500 dark:text-slate-500">
+                This will stop any running timer for this task.
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-between flex-wrap">
+              <Button variant="outline" onClick={handleResetTimeTracking}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setTimeDialogOpen(false)}>
+                  {t.common.cancel}
+                </Button>
+                <Button onClick={handleSaveTrackedMinutes}>{t.common.save}</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={frictionDialogOpen} onOpenChange={setFrictionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.friction.title}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-sm text-slate-600 dark:text-slate-400">{frictionDialogData?.title || ''}</div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {frictionDialogData ? (
+                <Badge className={frictionDialogData.color}>
+                  <Zap className="w-3 h-3 mr-1" />
+                  {frictionDialogData.level === 'low' && t.friction.low}
+                  {frictionDialogData.level === 'medium' && t.friction.medium}
+                  {frictionDialogData.level === 'high' && t.friction.high}
+                </Badge>
+              ) : null}
+
+              <Badge variant="outline">
+                {t.friction.score}: {frictionDialogData?.score ?? 0}
+              </Badge>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">{t.friction.explanation}</div>
+              {Array.isArray(frictionDialogData?.factors) && frictionDialogData!.factors.length > 0 ? (
+                <div className="space-y-1">
+                  {frictionDialogData!.factors
+                    .map((f) => formatFrictionFactor(f))
+                    .filter(Boolean)
+                    .map((line, idx) => (
+                      <div key={idx} className="text-sm text-slate-700 dark:text-slate-300">
+                        - {line}
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-sm text-slate-600 dark:text-slate-400">{t.friction.help}</div>
+              )}
             </div>
           </div>
         </DialogContent>
@@ -722,6 +976,15 @@ export default function TasksPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <CompletionReflectionModal
+        open={reflectionOpen}
+        onOpenChange={(open) => {
+          setReflectionOpen(open);
+          if (!open) setReflectionTask(null);
+        }}
+        task={reflectionTask}
+      />
     </div>
   );
 }
