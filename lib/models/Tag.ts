@@ -32,7 +32,8 @@ const TagSchema = new Schema<ITag>(
       },
       ar: {
         type: String,
-        required: true,
+        required: false,
+        default: '',
         trim: true,
       },
     },
@@ -49,5 +50,10 @@ const TagSchema = new Schema<ITag>(
 TagSchema.index({ userId: 1 });
 TagSchema.index({ groupId: 1 });
 TagSchema.index({ userId: 1, groupId: 1 });
+
+const TagModel = mongoose.models.Tag;
+if (process.env.NODE_ENV !== 'production' && TagModel) {
+  delete mongoose.models.Tag;
+}
 
 export const Tag: Model<ITag> = mongoose.models.Tag || mongoose.model<ITag>('Tag', TagSchema);

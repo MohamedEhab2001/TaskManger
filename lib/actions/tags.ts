@@ -59,54 +59,72 @@ export async function getTags(groupId?: string) {
 }
 
 export async function createTagGroup(data: z.infer<typeof tagGroupSchema>) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
 
-  const validated = tagGroupSchema.parse(data);
+    const parsed = tagGroupSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues?.[0]?.message || 'Invalid input' };
+    }
 
-  await connectDB();
+    const validated = parsed.data;
 
-  const tagGroup = await TagGroup.create({
-    userId: user.userId,
-    name: {
-      en: validated.name.en,
-      ar: validated.name.ar ?? '',
-    },
-    color: validated.color,
-    icon: validated.icon,
-  });
+    await connectDB();
 
-  revalidatePath('/app/tags');
-
-  return { success: true, groupId: tagGroup._id.toString() };
-}
-
-export async function updateTagGroup(id: string, data: z.infer<typeof tagGroupSchema>) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
-
-  const validated = tagGroupSchema.parse(data);
-
-  await connectDB();
-
-  const tagGroup = await TagGroup.findOneAndUpdate(
-    { _id: new mongoose.Types.ObjectId(id), userId: user.userId },
-    {
+    const tagGroup = await TagGroup.create({
+      userId: user.userId,
       name: {
         en: validated.name.en,
         ar: validated.name.ar ?? '',
       },
       color: validated.color,
       icon: validated.icon,
-    },
-    { new: true }
-  );
+    });
 
-  if (!tagGroup) throw new Error('Tag group not found');
+    revalidatePath('/app/tags');
 
-  revalidatePath('/app/tags');
+    return { success: true, groupId: tagGroup._id.toString() };
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Failed to create tag group' };
+  }
+}
 
-  return { success: true };
+export async function updateTagGroup(id: string, data: z.infer<typeof tagGroupSchema>) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
+
+    const parsed = tagGroupSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues?.[0]?.message || 'Invalid input' };
+    }
+
+    const validated = parsed.data;
+
+    await connectDB();
+
+    const tagGroup = await TagGroup.findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(id), userId: user.userId },
+      {
+        name: {
+          en: validated.name.en,
+          ar: validated.name.ar ?? '',
+        },
+        color: validated.color,
+        icon: validated.icon,
+      },
+      { new: true }
+    );
+
+    if (!tagGroup) return { success: false, error: 'Tag group not found' };
+
+    revalidatePath('/app/tags');
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Failed to update tag group' };
+  }
 }
 
 export async function deleteTagGroup(id: string) {
@@ -134,54 +152,72 @@ export async function deleteTagGroup(id: string) {
 }
 
 export async function createTag(data: z.infer<typeof tagSchema>) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
 
-  const validated = tagSchema.parse(data);
+    const parsed = tagSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues?.[0]?.message || 'Invalid input' };
+    }
 
-  await connectDB();
+    const validated = parsed.data;
 
-  const tag = await Tag.create({
-    userId: user.userId,
-    groupId: new mongoose.Types.ObjectId(validated.groupId),
-    name: {
-      en: validated.name.en,
-      ar: validated.name.ar ?? '',
-    },
-    color: validated.color,
-  });
+    await connectDB();
 
-  revalidatePath('/app/tags');
-
-  return { success: true, tagId: tag._id.toString() };
-}
-
-export async function updateTag(id: string, data: z.infer<typeof tagSchema>) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
-
-  const validated = tagSchema.parse(data);
-
-  await connectDB();
-
-  const tag = await Tag.findOneAndUpdate(
-    { _id: new mongoose.Types.ObjectId(id), userId: user.userId },
-    {
+    const tag = await Tag.create({
+      userId: user.userId,
       groupId: new mongoose.Types.ObjectId(validated.groupId),
       name: {
         en: validated.name.en,
         ar: validated.name.ar ?? '',
       },
       color: validated.color,
-    },
-    { new: true }
-  );
+    });
 
-  if (!tag) throw new Error('Tag not found');
+    revalidatePath('/app/tags');
 
-  revalidatePath('/app/tags');
+    return { success: true, tagId: tag._id.toString() };
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Failed to create tag' };
+  }
+}
 
-  return { success: true };
+export async function updateTag(id: string, data: z.infer<typeof tagSchema>) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
+
+    const parsed = tagSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues?.[0]?.message || 'Invalid input' };
+    }
+
+    const validated = parsed.data;
+
+    await connectDB();
+
+    const tag = await Tag.findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(id), userId: user.userId },
+      {
+        groupId: new mongoose.Types.ObjectId(validated.groupId),
+        name: {
+          en: validated.name.en,
+          ar: validated.name.ar ?? '',
+        },
+        color: validated.color,
+      },
+      { new: true }
+    );
+
+    if (!tag) return { success: false, error: 'Tag not found' };
+
+    revalidatePath('/app/tags');
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Failed to update tag' };
+  }
 }
 
 export async function deleteTag(id: string) {

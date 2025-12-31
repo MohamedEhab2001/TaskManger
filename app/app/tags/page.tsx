@@ -159,16 +159,24 @@ export default function TagsPage() {
   async function handleGroupSubmit() {
     try {
       const data = {
-        name: { en: groupForm.nameEn, ar: '' },
+        name: { en: groupForm.nameEn, ar: groupForm.nameAr || '' },
         color: groupForm.color,
         icon: groupForm.icon,
       };
 
       if (editingGroup) {
-        await updateTagGroup(editingGroup._id, data);
+        const res = await updateTagGroup(editingGroup._id, data);
+        if (!(res as any)?.success) {
+          toast.error((res as any)?.error || 'Failed to save group');
+          return;
+        }
         toast.success(t.tags.groupUpdated);
       } else {
-        await createTagGroup(data);
+        const res = await createTagGroup(data);
+        if (!(res as any)?.success) {
+          toast.error((res as any)?.error || 'Failed to save group');
+          return;
+        }
         toast.success(t.tags.groupCreated);
       }
 
@@ -184,15 +192,23 @@ export default function TagsPage() {
     try {
       const data = {
         groupId: tagForm.groupId,
-        name: { en: tagForm.nameEn, ar: '' },
+        name: { en: tagForm.nameEn, ar: tagForm.nameAr || '' },
         color: tagForm.color || undefined,
       };
 
       if (editingTag) {
-        await updateTag(editingTag._id, data);
+        const res = await updateTag(editingTag._id, data);
+        if (!(res as any)?.success) {
+          toast.error((res as any)?.error || 'Failed to save tag');
+          return;
+        }
         toast.success(t.tags.tagUpdated);
       } else {
-        await createTag(data);
+        const res = await createTag(data);
+        if (!(res as any)?.success) {
+          toast.error((res as any)?.error || 'Failed to save tag');
+          return;
+        }
         toast.success(t.tags.tagCreated);
       }
 

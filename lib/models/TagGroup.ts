@@ -27,7 +27,8 @@ const TagGroupSchema = new Schema<ITagGroup>(
       },
       ar: {
         type: String,
-        required: true,
+        required: false,
+        default: '',
         trim: true,
       },
     },
@@ -50,5 +51,9 @@ const TagGroupSchema = new Schema<ITagGroup>(
 TagGroupSchema.index({ userId: 1 });
 TagGroupSchema.index({ userId: 1, createdAt: -1 });
 
-export const TagGroup: Model<ITagGroup> =
-  mongoose.models.TagGroup || mongoose.model<ITagGroup>('TagGroup', TagGroupSchema);
+const TagGroupModel = mongoose.models.TagGroup;
+if (process.env.NODE_ENV !== 'production' && TagGroupModel) {
+  delete mongoose.models.TagGroup;
+}
+
+export const TagGroup: Model<ITagGroup> = mongoose.models.TagGroup || mongoose.model<ITagGroup>('TagGroup', TagGroupSchema);
