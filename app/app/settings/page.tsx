@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload } from 'lucide-react';
-import { getTasks } from '@/lib/actions/tasks';
+import { Upload } from 'lucide-react';
 import { runTimeTrackingSanityTest } from '@/lib/actions/tasks';
 import { changePasswordAction } from '@/lib/actions/settings';
 import { toast } from 'sonner';
@@ -69,50 +68,6 @@ export default function SettingsPage() {
   function saveDailyCapacity() {
     localStorage.setItem('dailyCapacity', dailyCapacity);
     toast.success(t.settings.settingsSaved);
-  }
-
-  async function exportJSON() {
-    try {
-      const tasks = await getTasks();
-      const dataStr = JSON.stringify(tasks, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tasks-export-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success(t.settings.exportSuccess);
-    } catch (error) {
-      toast.error('Failed to export');
-    }
-  }
-
-  async function exportCSV() {
-    try {
-      const tasks = await getTasks();
-      const headers = ['Title', 'Description', 'Status', 'Priority', 'Due Date', 'Estimated Minutes'];
-      const rows = tasks.map((task: any) => [
-        task.title,
-        task.description || '',
-        task.status,
-        task.priority,
-        task.dueDate || '',
-        task.estimatedMinutes || '',
-      ]);
-
-      const csv = [headers, ...rows].map((row) => row.map((cell: any) => `"${cell}"`).join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tasks-export-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success(t.settings.exportSuccess);
-    } catch (error) {
-      toast.error('Failed to export');
-    }
   }
 
   return (
@@ -194,22 +149,6 @@ export default function SettingsPage() {
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
             This affects the Smart Weekly Planner capacity calculations.
           </p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
-            {t.settings.export}
-          </h2>
-          <div className="flex gap-4">
-            <Button onClick={exportJSON} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              {t.settings.exportJSON}
-            </Button>
-            <Button onClick={exportCSV} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              {t.settings.exportCSV}
-            </Button>
-          </div>
         </div>
 
         {process.env.NODE_ENV !== 'production' ? (
