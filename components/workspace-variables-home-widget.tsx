@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n/context';
+import { decryptWorkspaceVariableValue } from '@/lib/workspaceVariablesE2EE';
 
 type PreviewVar = {
   _id: string;
@@ -62,7 +63,20 @@ export function WorkspaceVariablesHomeWidget({ className }: { className?: string
 
       const json = await res.json();
       const data = Array.isArray(json?.data) ? json.data : [];
-      setItems(data);
+      const decrypted = await Promise.all(
+        (data as PreviewVar[]).map(async (it) => {
+          try {
+            return {
+              ...it,
+              value: await decryptWorkspaceVariableValue(it.value),
+            };
+          } catch {
+            return it;
+          }
+        })
+      );
+
+      setItems(decrypted);
     } catch {
       setError(true);
     } finally {

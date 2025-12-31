@@ -18,13 +18,16 @@ import {
 } from '@/components/ui/table';
 import { Plus, Copy, Pencil, Trash2, Check, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  createWorkspaceVariable,
-  deleteWorkspaceVariable,
-  getWorkspaceVariables,
-  updateWorkspaceVariable,
-  type WorkspaceVariableDTO,
-} from '@/lib/actions/workspaceVariables';
+import { decryptWorkspaceVariableValue, encryptWorkspaceVariableValue } from '@/lib/workspaceVariablesE2EE';
+
+type WorkspaceVariableDTO = {
+  _id: string;
+  key: string;
+  value: string;
+  tag?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export default function WorkspaceVariablesPage() {
   const { t } = useI18n();
@@ -68,8 +71,35 @@ export default function WorkspaceVariablesPage() {
   const loadData = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const data = await getWorkspaceVariables({ search: q });
-      setRows(data);
+      const qs = new URLSearchParams();
+      if (q.trim()) qs.set('search', q.trim());
+
+      const res = await fetch(`/api/workspace-variables?${qs.toString()}`, {
+        method: 'GET',
+        headers: { 'content-type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        throw new Error('Request failed');
+      }
+
+      const json = await res.json();
+      const data = Array.isArray(json?.data) ? (json.data as WorkspaceVariableDTO[]) : [];
+
+      const decrypted = await Promise.all(
+        data.map(async (row) => {
+          try {
+            return {
+              ...row,
+              value: await decryptWorkspaceVariableValue(row.value),
+            };
+          } catch {
+            return row;
+          }
+        })
+      );
+
+      setRows(decrypted);
     } catch {
       toast.error('Failed to load variables');
     } finally {
@@ -117,19 +147,41 @@ export default function WorkspaceVariablesPage() {
 
     setSaving(true);
     try {
+      const encryptedValue = await encryptWorkspaceVariableValue(value);
+
       if (editing) {
-        await updateWorkspaceVariable(editing._id, {
-          key,
-          value,
-          tag: tag ? tag : null,
-        } as any);
+        const res = await fetch(`/api/workspace-variables/${encodeURIComponent(editing._id)}`,
+          {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              key,
+              value: encryptedValue,
+              tag: tag ? tag : null,
+            }),
+          }
+        );
+
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error || 'Failed to save variable');
+        }
         toast.success('Variable updated');
       } else {
-        await createWorkspaceVariable({
-          key,
-          value,
-          tag: tag ? tag : null,
-        } as any);
+        const res = await fetch('/api/workspace-variables', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            key,
+            value: encryptedValue,
+            tag: tag ? tag : null,
+          }),
+        });
+
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error || 'Failed to save variable');
+        }
         toast.success('Variable added');
       }
       setDialogOpen(false);
@@ -146,7 +198,15 @@ export default function WorkspaceVariablesPage() {
     if (!ok) return;
 
     try {
-      await deleteWorkspaceVariable(row._id);
+      const res = await fetch(`/api/workspace-variables/${encodeURIComponent(row._id)}`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || 'Failed to delete variable');
+      }
       toast.success('Variable deleted');
       await loadData(search);
     } catch (e: any) {
@@ -179,6 +239,12 @@ export default function WorkspaceVariablesPage() {
           Add variable
         </Button>
       </div>
+
+      <Card className="p-4">
+        <div className="text-sm text-slate-700 dark:text-slate-300">
+          All variables here are end-to-end encrypted (E2EE).
+        </div>
+      </Card>
 
       <Card className="p-4">
         <div className="flex items-center gap-3 flex-wrap">

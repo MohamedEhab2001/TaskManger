@@ -150,7 +150,7 @@ Notes:
 ### First Login
 
 The application automatically seeds a default admin account:
-- **Email**: `admin@local.dev`
+- **Email**: `.dev`
 - **Password**: `Admin12345!`
 
 ### Demo Data

@@ -53,7 +53,7 @@ export async function loginAction(formData: FormData) {
 
     await setAuthCookie(token);
 
-    redirect('/app');
+    return { success: true };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { error: 'Invalid input' };
@@ -99,7 +99,7 @@ export async function signupAction(formData: FormData) {
 
     await setAuthCookie(token);
 
-    redirect('/app');
+    return { success: true };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message };

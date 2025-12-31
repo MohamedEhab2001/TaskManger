@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { loginAction } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const { t, language, setLanguage } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,10 +20,24 @@ export default function LoginPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const result = await loginAction(formData);
+    try {
+      const result = await loginAction(formData);
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+
+      router.replace('/app');
+    } catch (err) {
+      const digest = typeof err === 'object' && err !== null && 'digest' in err ? String((err as any).digest) : '';
+      if (digest.startsWith('NEXT_REDIRECT')) {
+        router.replace('/app');
+        return;
+      }
+
+      setError('Something went wrong');
       setLoading(false);
     }
   }
