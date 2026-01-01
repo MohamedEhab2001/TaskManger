@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, Calendar as CalendarIcon, Pin, Edit, Trash2, Sparkles, AlertTriangle, Zap, Clock, RotateCcw } from 'lucide-react';
 import { CompletionReflectionModal } from '@/components/completion-reflection-modal';
-import { getTasks, createTask, updateTask, deleteTask, bulkDeleteTasks, resetTaskTimeTracking, setTaskTrackedMinutes } from '@/lib/actions/tasks';
+import { getTasks, getTask, createTask, updateTask, deleteTask, bulkDeleteTasks, resetTaskTimeTracking, setTaskTrackedMinutes } from '@/lib/actions/tasks';
 import { getTags } from '@/lib/actions/tags';
 import { generateWeeklyPlan, acceptWeeklyPlan } from '@/lib/actions/planner';
 import { createStarterTasks, suggestTaskBreakdown, acceptTaskBreakdown } from '@/lib/actions/advanced';
@@ -141,9 +141,33 @@ export default function TasksPage() {
       if (editingTask) {
         await updateTask(editingTask._id, data);
         toast.success(t.tasks.taskUpdated);
+
+        if (formData.status === 'done') {
+          try {
+            const fullTask: any = await getTask(editingTask._id);
+            if (Array.isArray(fullTask?.subtasks) && fullTask.subtasks.length > 0) {
+              setReflectionTask(fullTask);
+              setReflectionOpen(true);
+            }
+          } catch {
+            // ignore
+          }
+        }
       } else {
-        await createTask(data);
+        const created: any = await createTask(data);
         toast.success(t.tasks.taskCreated);
+
+        if (formData.status === 'done' && created?.taskId) {
+          try {
+            const fullTask: any = await getTask(created.taskId);
+            if (Array.isArray(fullTask?.subtasks) && fullTask.subtasks.length > 0) {
+              setReflectionTask(fullTask);
+              setReflectionOpen(true);
+            }
+          } catch {
+            // ignore
+          }
+        }
       }
 
       setTaskDialog(false);

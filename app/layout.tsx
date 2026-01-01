@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Taskello',
   description: 'Taskello - time-aware task management with insights and planning',
+  icons: {
+    icon: '/brand/icon.ico',
+  },
   openGraph: {
     images: [
       {

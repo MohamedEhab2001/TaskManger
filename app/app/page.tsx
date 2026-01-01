@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
 import Link from 'next/link';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import { Shield, Clock, CalendarClock, Timer, AlertTriangle } from 'lucide-react';
 import { CompletionReflectionModal } from '@/components/completion-reflection-modal';
@@ -264,20 +265,34 @@ export default function AppHomePage() {
     const prevToday = todayTasks;
     const prevOverdue = overdueTasks;
 
+    const localTask =
+      (prevToday || []).find((t: any) => t?._id === taskId) || (prevOverdue || []).find((t: any) => t?._id === taskId) || null;
+
     setTodayTasks((current) => current.map((t) => (t._id === taskId ? { ...t, status } : t)));
     setOverdueTasks((current) => current.map((t) => (t._id === taskId ? { ...t, status } : t)));
 
     try {
       const res: any = await updateTaskStatus(taskId, status);
       if (status === 'done') {
-        const updatedTask = await getTask(taskId);
-        if (updatedTask) toast.success(getCompletionEstimationMessage(updatedTask));
-
-        const hasSubtasks = Array.isArray((updatedTask as any)?.subtasks) && (updatedTask as any).subtasks.length > 0;
         const transitionedIntoDone = res?.prevStatus ? res.prevStatus !== 'done' : Boolean(res?.triggerReflection);
-        if (transitionedIntoDone && hasSubtasks) {
-          setReflectionTask(updatedTask);
+        const shouldOpenReflection = Boolean(res?.triggerReflection) || transitionedIntoDone;
+
+        let fullTask: any = null;
+        try {
+          fullTask = await getTask(taskId);
+        } catch {
+          fullTask = null;
+        }
+
+        const taskForUi = fullTask || localTask;
+        if (taskForUi) toast.success(getCompletionEstimationMessage(taskForUi));
+
+        const hasSubtasks = Array.isArray(taskForUi?.subtasks) && taskForUi.subtasks.length > 0;
+        if (shouldOpenReflection && hasSubtasks) {
+          setReflectionTask(taskForUi);
           setReflectionOpen(true);
+        } else if (Boolean(res?.triggerReflection) && !hasSubtasks) {
+          toast.error('Failed to load completion criteria for reflection');
         }
       }
       await load();

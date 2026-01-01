@@ -143,8 +143,8 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-lg border border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shadow-sm">
-                <Target className="h-4.5 w-4.5 text-slate-900 dark:text-white" />
+              <div className="relative h-9 w-9 overflow-hidden">
+                <Image src="/brand/logo.png" alt={t.landing.brand} fill className="object-contain" priority />
               </div>
               <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">{t.landing.brand}</span>
             </div>
@@ -573,8 +573,8 @@ export default function LandingPage() {
           <div className="flex items-start justify-between gap-8 flex-wrap">
             <div>
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg border border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/60 flex items-center justify-center shadow-sm">
-                  <Target className="h-4 w-4 text-slate-900 dark:text-white" />
+                <div className="relative h-8 w-8 overflow-hidden">
+                  <Image src="/brand/logo.png" alt={t.landing.brand} fill className="object-contain" priority />
                 </div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.brand}</div>
               </div>

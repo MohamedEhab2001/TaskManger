@@ -86,7 +86,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="relative h-8 w-8">
                   {logoOk ? (
                     <Image
-                      src="/brand/taskello-logo.svg"
+                      src="/brand/logo.png"
                       alt="Taskello"
                       fill
                       className="object-contain"
@@ -179,7 +179,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="relative h-7 w-7">
                 {logoOk ? (
                   <Image
-                    src="/brand/taskello-logo.svg"
+                    src="/brand/logo.png"
                     alt="Taskello"
                     fill
                     className="object-contain"
