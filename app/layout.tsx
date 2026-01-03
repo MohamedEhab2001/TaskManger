@@ -88,9 +88,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Script id="taskello-structured-data" type="application/ld+json" strategy="beforeInteractive">
-          {JSON.stringify(structuredData)}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-VCV9SWQFG4" strategy="afterInteractive" />
+        <Script id="ga4" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){window.dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-VCV9SWQFG4');`}
         </Script>
+        <script
+          id="taskello-structured-data"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>
