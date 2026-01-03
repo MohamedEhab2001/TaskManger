@@ -192,14 +192,14 @@ export default function LandingPage() {
               </div>
 
               <h1 className="mt-5 text-4xl md:text-5xl font-semibold tracking-tight text-slate-900 dark:text-white">
-                Stop guessing where your time went.
+                Time tracking for freelancers — where estimates meet reality.
                 <br />
-                Plan it. Track it. Prove it.
+                Calm proof of work, without busywork.
               </h1>
 
               <p className="mt-4 text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
-                Taskello helps you plan tasks with real time estimates, track what actually happens, and reflect on
-                completion — without distractions or fake productivity.
+                Taskello is for solo developers and independent professionals who want realistic task planning, honest
+                time tracking, and a clean client-ready proof page.
               </p>
 
               <div className="mt-7 flex flex-col sm:flex-row gap-3">
@@ -233,18 +233,18 @@ export default function LandingPage() {
 
       <section id="why" className="px-4 sm:px-6 py-12">
         <div className="max-w-6xl mx-auto">
-          <SectionTitle title="Why time breaks trust — even when work is good" subtitle={t.landing.whyBody} />
+          <SectionTitle title="Why estimation vs actual time changes trust" subtitle={t.landing.whyBody} />
           <div className="mt-8 grid md:grid-cols-3 gap-4">
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem1Title}</div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem1Title}</h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.problem1Desc}</div>
             </div>
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem2Title}</div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem2Title}</h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.problem2Desc}</div>
             </div>
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem3Title}</div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.problem3Title}</h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.problem3Desc}</div>
             </div>
           </div>
@@ -275,7 +275,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   {/* TODO(i18n): landing.howStep1Title */}
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep1Title}</div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep1Title}</h3>
                   {/* TODO(i18n): landing.howStep1Desc */}
                   <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.howStep1Desc}</div>
                 </div>
@@ -288,7 +288,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   {/* TODO(i18n): landing.howStep2Title */}
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep2Title}</div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep2Title}</h3>
                   {/* TODO(i18n): landing.howStep2Desc */}
                   <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.howStep2Desc}</div>
                 </div>
@@ -301,7 +301,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   {/* TODO(i18n): landing.howStep3Title */}
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep3Title}</div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.howStep3Title}</h3>
                   {/* TODO(i18n): landing.howStep3Desc */}
                   <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.howStep3Desc}</div>
                 </div>
@@ -331,7 +331,7 @@ export default function LandingPage() {
               </div>
               <div>
                 {/* TODO(i18n): landing.featureTimeAwareHomeTitle */}
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureTimeAwareHomeTitle}</div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureTimeAwareHomeTitle}</h3>
                 {/* TODO(i18n): landing.featureTimeAwareHomeDesc */}
                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureTimeAwareHomeDesc}</div>
               </div>
@@ -343,7 +343,7 @@ export default function LandingPage() {
               </div>
               <div>
                 {/* TODO(i18n): landing.featureReflectionTitle */}
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureReflectionTitle}</div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureReflectionTitle}</h3>
                 {/* TODO(i18n): landing.featureReflectionDesc */}
                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureReflectionDesc}</div>
               </div>
@@ -355,7 +355,7 @@ export default function LandingPage() {
               </div>
               <div>
                 {/* TODO(i18n): landing.featureInsightsTitle */}
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureInsightsTitle}</div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureInsightsTitle}</h3>
                 {/* TODO(i18n): landing.featureInsightsDesc */}
                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureInsightsDesc}</div>
               </div>
@@ -367,7 +367,7 @@ export default function LandingPage() {
               </div>
               <div>
                 {/* TODO(i18n): landing.featureProofPageTitle */}
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureProofPageTitle}</div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureProofPageTitle}</h3>
                 {/* TODO(i18n): landing.featureProofPageDesc */}
                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureProofPageDesc}</div>
               </div>
@@ -379,7 +379,7 @@ export default function LandingPage() {
               </div>
               <div>
                 {/* TODO(i18n): landing.featureWorkspaceVariablesTitle */}
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureWorkspaceVariablesTitle}</div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{(t as any)?.landing?.featureWorkspaceVariablesTitle}</h3>
                 {/* TODO(i18n): landing.featureWorkspaceVariablesDesc */}
                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{(t as any)?.landing?.featureWorkspaceVariablesDesc}</div>
               </div>
@@ -429,7 +429,7 @@ export default function LandingPage() {
               <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-950/60 shadow-sm p-6">
                 <div className="flex items-start justify-between gap-6 flex-wrap">
                   <div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.lifetimePlanTitle}</div>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.lifetimePlanTitle}</h3>
                     <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t.landing.lifetimePlanDesc}</div>
                   </div>
                   <div className="text-right">
@@ -438,24 +438,12 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-2 text-sm text-slate-700 dark:text-slate-200">
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-blue-600">•</span>
-                    <span>{t.landing.lifetimeInclude1}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-blue-600">•</span>
-                    <span>{t.landing.lifetimeInclude2}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-blue-600">•</span>
-                    <span>{t.landing.lifetimeInclude3}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-blue-600">•</span>
-                    <span>{t.landing.lifetimeInclude4}</span>
-                  </div>
-                </div>
+                <ul className="mt-5 grid gap-2 text-sm text-slate-700 dark:text-slate-200 list-disc pl-5">
+                  <li>{t.landing.lifetimeInclude1}</li>
+                  <li>{t.landing.lifetimeInclude2}</li>
+                  <li>{t.landing.lifetimeInclude3}</li>
+                  <li>{t.landing.lifetimeInclude4}</li>
+                </ul>
 
                 <div className="mt-6 flex flex-col sm:flex-row gap-3">
                   <Button className="gap-2 flex-1" size="lg" onClick={() => setBuyOpen(true)}>
@@ -480,21 +468,12 @@ export default function LandingPage() {
 
             <div className="lg:col-span-5">
               <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/50 dark:bg-slate-950/40 p-6">
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.forWhoTitle}</div>
-                <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-blue-600">•</span>
-                    <span>{t.landing.forWho1}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-blue-600">•</span>
-                    <span>{t.landing.forWho2}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-blue-600">•</span>
-                    <span>{t.landing.forWho3}</span>
-                  </div>
-                </div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t.landing.forWhoTitle}</h3>
+                <ul className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300 list-disc pl-5">
+                  <li>{t.landing.forWho1}</li>
+                  <li>{t.landing.forWho2}</li>
+                  <li>{t.landing.forWho3}</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -507,7 +486,7 @@ export default function LandingPage() {
 
           <div className="mt-8 space-y-3">
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">What does “lifetime purchase” mean?</div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">What does “lifetime purchase” mean?</h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 You pay once and keep access forever.
                 <br />
@@ -515,14 +494,14 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">Can I share progress with clients?</div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Can I share progress with clients?</h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 Yes. You can generate a clean, read-only client page for a specific project or tag — showing real
                 progress, time spent, and completion status.
               </div>
             </div>
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">How does the timer work?</div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">How does the timer work?</h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 The timer is tied to task state.
                 <br />
@@ -531,7 +510,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">Is this monitoring or surveillance?</div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Is this monitoring or surveillance?</h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 No. Taskello does not track screens, activity, or behavior.
                 <br />
@@ -539,20 +518,20 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-950/50 p-5">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                 Why Taskello instead of Jira, Asana, or other task tools?
-              </div>
+              </h3>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 Jira and similar tools are built for teams, processes, and coordination.
                 <br />
                 Taskello is built for individuals who sell time, outcomes, or deliverables.
                 <div className="mt-3" />
                 It focuses on:
-                <div className="mt-2 space-y-1">
-                  <div>Time awareness instead of workflow complexity</div>
-                  <div>Real completion instead of endless task movement</div>
-                  <div>Proof of work instead of internal coordination</div>
-                </div>
+                <ul className="mt-2 space-y-1 list-disc pl-5">
+                  <li>Time awareness instead of workflow complexity</li>
+                  <li>Real completion instead of endless task movement</li>
+                  <li>Proof of work instead of internal coordination</li>
+                </ul>
                 <div className="mt-3" />
                 If you work solo and need clarity — not overhead — Taskello fits better.
               </div>
