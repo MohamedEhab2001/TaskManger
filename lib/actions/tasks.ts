@@ -49,6 +49,20 @@ const setTaskTrackedMinutesSchema = z.object({
   minutes: z.number().int().min(0).max(24 * 60),
 });
 
+const duplicateTaskSchema = z.object({
+  taskId: z.string().min(1),
+  dueDate: z.string().optional(),
+});
+
+function escapeRegExp(input: string) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function stripTrailingNumberSuffix(title: string) {
+  const trimmed = title.trim();
+  return trimmed.replace(/\s+#\d+\s*$/i, '').trim();
+}
+
 function computeTaskTotalSeconds(task: any, now: Date) {
   const totalSeconds = task?.timeTracking?.totalSeconds || 0;
   const isRunning = Boolean(task?.timeTracking?.isRunning);
@@ -574,6 +588,101 @@ export async function createTask(data: z.infer<typeof taskSchema>) {
   revalidatePath('/app/dashboard');
 
   return { success: true, taskId: task._id.toString() };
+}
+
+export async function duplicateTask(payload: { taskId: string; dueDate?: string }) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const validated = duplicateTaskSchema.parse(payload);
+
+  await connectDB();
+
+  const source = await Task.findOne({
+    _id: new mongoose.Types.ObjectId(validated.taskId),
+    userId: user.userId,
+  });
+
+  if (!source) throw new Error('Task not found');
+
+  const baseTitle = stripTrailingNumberSuffix(String(source.title || ''));
+  const titleRegex = new RegExp(`^${escapeRegExp(baseTitle)}\\s+#(\\d+)\\s*$`, 'i');
+
+  const existingWithSuffix = await Task.find({
+    userId: user.userId,
+    title: { $regex: new RegExp(`^${escapeRegExp(baseTitle)}(\\s+#\\d+)?\\s*$`, 'i') },
+  })
+    .select({ title: 1 })
+    .lean();
+
+  let maxSuffix = 0;
+  for (const t of existingWithSuffix) {
+    const m = String((t as any)?.title || '').match(titleRegex);
+    if (!m) continue;
+    const n = parseInt(m[1], 10);
+    if (!Number.isNaN(n)) maxSuffix = Math.max(maxSuffix, n);
+  }
+  const nextSuffix = maxSuffix + 1;
+  const newTitle = `${baseTitle} #${nextSuffix}`;
+
+  const now = new Date();
+
+  let dueDate: Date | null = null;
+  if (validated.dueDate) {
+    dueDate = new Date(validated.dueDate);
+    if (!Number.isNaN(dueDate.getTime())) {
+      dueDate.setHours(0, 0, 0, 0);
+    } else {
+      dueDate = null;
+    }
+  } else if ((source as any).dueDate) {
+    dueDate = new Date((source as any).dueDate);
+  }
+
+  const sourceSubtasks = Array.isArray((source as any).subtasks) ? (source as any).subtasks : [];
+  const subtasks = sourceSubtasks.length
+    ? sourceSubtasks
+        .filter((s: any) => s && typeof s.title === 'string' && s.title.trim().length > 0)
+        .map((s: any) => ({
+          title: String(s.title).trim(),
+          isDone: false,
+          createdAt: now,
+          doneAt: null,
+        }))
+    : undefined;
+
+  const duplicated = await Task.create({
+    userId: user.userId,
+    title: newTitle,
+    description: (source as any).description || '',
+    status: 'todo',
+    priority: (source as any).priority || 'medium',
+    dueDate,
+    startAt: null,
+    completedAt: null,
+    tags: Array.isArray((source as any).tags) ? (source as any).tags : [],
+    estimatedMinutes: (source as any).estimatedMinutes ?? null,
+    actualMinutes: null,
+    estimationResult: null,
+    timeTracking: {
+      totalSeconds: 0,
+      isRunning: false,
+      lastStartedAt: null,
+      sessions: [],
+    },
+    subtasks,
+    completionReflection: null,
+    doneTransitionMeta: null,
+    originalTaskId: source._id,
+    isPinned: false,
+  });
+
+  revalidatePath('/app');
+  revalidatePath('/app/tasks');
+  revalidatePath('/app/dashboard');
+  revalidatePath('/app/insights');
+
+  return { success: true, taskId: duplicated._id.toString() };
 }
 
 export async function updateTask(id: string, data: Partial<z.infer<typeof taskSchema>>) {

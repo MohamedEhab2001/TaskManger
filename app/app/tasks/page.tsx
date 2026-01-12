@@ -18,9 +18,19 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Calendar as CalendarIcon, Pin, Edit, Trash2, Sparkles, AlertTriangle, Zap, Clock, RotateCcw } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Pin, Edit, Trash2, Sparkles, AlertTriangle, Zap, Clock, RotateCcw, Copy } from 'lucide-react';
 import { CompletionReflectionModal } from '@/components/completion-reflection-modal';
-import { getTasks, getTask, createTask, updateTask, deleteTask, bulkDeleteTasks, resetTaskTimeTracking, setTaskTrackedMinutes } from '@/lib/actions/tasks';
+import {
+  getTasks,
+  getTask,
+  createTask,
+  updateTask,
+  deleteTask,
+  bulkDeleteTasks,
+  resetTaskTimeTracking,
+  setTaskTrackedMinutes,
+  duplicateTask,
+} from '@/lib/actions/tasks';
 import { getTags } from '@/lib/actions/tags';
 import { generateWeeklyPlan, acceptWeeklyPlan } from '@/lib/actions/planner';
 import { createStarterTasks, suggestTaskBreakdown, acceptTaskBreakdown } from '@/lib/actions/advanced';
@@ -52,6 +62,11 @@ export default function TasksPage() {
 
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [reflectionTask, setReflectionTask] = useState<any>(null);
+
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateSourceTask, setDuplicateSourceTask] = useState<any>(null);
+  const [duplicateMode, setDuplicateMode] = useState<'today' | 'tomorrow' | 'date'>('today');
+  const [duplicateDueDate, setDuplicateDueDate] = useState('');
 
   const [frictionDialogOpen, setFrictionDialogOpen] = useState(false);
   const [frictionDialogData, setFrictionDialogData] = useState<{
@@ -213,6 +228,41 @@ export default function TasksPage() {
         : [],
     });
     setTaskDialog(true);
+  }
+
+  function openDuplicateDialog(task: any) {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    setDuplicateSourceTask(task);
+    setDuplicateMode('today');
+    setDuplicateDueDate(today);
+    setDuplicateDialogOpen(true);
+  }
+
+  function applyDuplicateMode(mode: 'today' | 'tomorrow' | 'date') {
+    setDuplicateMode(mode);
+    if (mode === 'today') {
+      setDuplicateDueDate(format(new Date(), 'yyyy-MM-dd'));
+      return;
+    }
+    if (mode === 'tomorrow') {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      setDuplicateDueDate(format(d, 'yyyy-MM-dd'));
+      return;
+    }
+  }
+
+  async function confirmDuplicate() {
+    if (!duplicateSourceTask?._id) return;
+    try {
+      await duplicateTask({ taskId: duplicateSourceTask._id, dueDate: duplicateDueDate || undefined });
+      toast.success('Task duplicated');
+      setDuplicateDialogOpen(false);
+      setDuplicateSourceTask(null);
+      loadData();
+    } catch {
+      toast.error('Failed to duplicate task');
+    }
   }
 
   function addSubtaskRow() {
@@ -646,6 +696,9 @@ export default function TasksPage() {
                 <Button size="sm" variant="ghost" onClick={() => editTask(task)}>
                   <Edit className="w-4 h-4" />
                 </Button>
+                <Button size="sm" variant="ghost" onClick={() => openDuplicateDialog(task)}>
+                  <Copy className="w-4 h-4" />
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => handleDelete(task._id)}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -815,6 +868,50 @@ export default function TasksPage() {
               </Button>
               <Button variant="outline" onClick={() => setTaskDialog(false)}>
                 {t.common.cancel}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duplicate task</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Duplicate <span className="font-medium text-slate-900 dark:text-white">{duplicateSourceTask?.title}</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <Button type="button" variant={duplicateMode === 'today' ? 'default' : 'outline'} onClick={() => applyDuplicateMode('today')}>
+                Today
+              </Button>
+              <Button
+                type="button"
+                variant={duplicateMode === 'tomorrow' ? 'default' : 'outline'}
+                onClick={() => applyDuplicateMode('tomorrow')}
+              >
+                Tomorrow
+              </Button>
+              <Button type="button" variant={duplicateMode === 'date' ? 'default' : 'outline'} onClick={() => applyDuplicateMode('date')}>
+                Pick date
+              </Button>
+            </div>
+
+            <div>
+              <Label>Due date</Label>
+              <Input type="date" value={duplicateDueDate} onChange={(e) => setDuplicateDueDate(e.target.value)} />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setDuplicateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={confirmDuplicate} disabled={!duplicateSourceTask?._id}>
+                Duplicate
               </Button>
             </div>
           </div>
