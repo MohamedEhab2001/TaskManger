@@ -153,6 +153,9 @@ export default function LandingPage() {
               <a href="#why" className="hover:text-slate-900 dark:hover:text-white transition">
                 {t.landing.navWhy}
               </a>
+              <Link href="/blog" className="hover:text-slate-900 dark:hover:text-white transition">
+                Blog
+              </Link>
               <a href="#how" className="hover:text-slate-900 dark:hover:text-white transition">
                 {/* TODO(i18n): landing.navHow */}
                 {(t as any)?.landing?.navHow}
